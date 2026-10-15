@@ -311,7 +311,7 @@
   //   <id>-mapa.jpg   fondo del mapa (vertical, que se pueda repetir hacia arriba)
   // Si falta alguna imagen, se usa el degradado "fallback" de ese mundo.
   const LEVELS_PER_WORLD = 100;
-  const WORLD_IMAGE_VERSION = 1; // súbelo si reemplazas imágenes con el mismo nombre
+  const WORLD_IMAGE_VERSION = 2; // súbelo si reemplazas imágenes con el mismo nombre
   const WORLDS = [
     { id: "pradera", name: { en: "Green Meadow", es: "Pradera Verde" }, color: "#43a047",
       fallback: "linear-gradient(#bfe9ff, #d8f5c4 35%, #8bc34a 70%, #5a9e2f)" },
@@ -1945,7 +1945,7 @@
 
     // posición de cada nivel: el 1 abajo, subiendo en zigzag suave
     const pos = (n) => ({
-      x: 50 + Math.sin(n * 0.9) * 28, // % del ancho
+      x: 50 + Math.sin(n * 0.9) * 18, // % del ancho (el centro de los mapas es pasto libre: ~25% a 75%)
       y: height - MAP_PADDING - (n - 1) * STEP, // px desde arriba
     });
 
