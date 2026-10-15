@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=20">
+  <link rel="stylesheet" href="style.css?v=21">
 </head>
 <body>
   <!-- ===== PORTADA ===== -->
@@ -23,7 +23,11 @@
       <div class="lives-pill" data-lives aria-live="polite"><span class="heart" aria-hidden="true"><strong class="lives-count">5</strong></span><span class="lives-timer"></span></div>
       <button id="homePlay" class="big-btn primary" type="button"><span data-i18n="playLevel">Play · Level</span> <span id="homeLevel">1</span></button>
       <button id="homeMap" class="big-btn" type="button" data-i18n="levels">Levels</button>
-      <button id="langToggle" class="lang-btn" type="button"><span aria-hidden="true">🌐</span> <span data-i18n="switchLang">Español</span></button>
+      <div class="home-options">
+        <button id="musicToggle" class="lang-btn sound-btn" type="button" aria-pressed="true"><span aria-hidden="true">🎵</span> <span data-label>Music: on</span></button>
+        <button id="sfxToggle" class="lang-btn sound-btn" type="button" aria-pressed="true"><span aria-hidden="true">🔊</span> <span data-label>Sounds: on</span></button>
+        <button id="langToggle" class="lang-btn" type="button"><span aria-hidden="true">🌐</span> <span data-i18n="switchLang">Español</span></button>
+      </div>
     </div>
   </section>
 
@@ -48,7 +52,10 @@
       <div class="hud-top">
         <button id="gameBack" class="back-btn small" type="button" data-i18n="mapShort" data-i18n-aria="backMap" aria-label="Back to map">‹ Map</button>
         <h1>Marshmallow Pals</h1>
-        <div class="lives-pill small" data-lives><span class="heart" aria-hidden="true"><strong class="lives-count">5</strong></span><span class="lives-timer"></span></div>
+        <div class="hud-right">
+          <button id="gameMute" class="mute-btn" type="button" aria-label="Mute">🔊</button>
+          <div class="lives-pill small" data-lives><span class="heart" aria-hidden="true"><strong class="lives-count">5</strong></span><span class="lives-timer"></span></div>
+        </div>
       </div>
       <div class="stats">
         <div class="stat"><span data-i18n="level">Level</span><strong id="levelNum">1</strong></div>
@@ -156,6 +163,7 @@
     <p data-i18n="rotate">Turn your phone upright to play</p>
   </div>
 
-  <script src="script.js?v=19"></script>
+  <script src="audio.js?v=1"></script>
+  <script src="script.js?v=20"></script>
 </body>
 </html>

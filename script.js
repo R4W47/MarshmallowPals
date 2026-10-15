@@ -5,6 +5,9 @@
   // 1. CONFIGURACIÓN
   // =====================================================================
 
+  // Sonido y música (audio.js). Si no cargara, el juego sigue en silencio.
+  const Sound = window.Sound || { play() {}, music() {}, settings: {}, setMusic() {}, setSfx() {} };
+
   const WIDTH = 8;                 // el tablero es de WIDTH x WIDTH
   const SIZE = WIDTH * WIDTH;
 
@@ -138,6 +141,12 @@
       close: "Close",
       rotate: "Turn your phone upright to play",
       switchLang: "Español",
+      musicOn: "Music: on",
+      musicOff: "Music: off",
+      sfxOn: "Sounds: on",
+      sfxOff: "Sounds: off",
+      mute: "Mute",
+      unmute: "Turn sound on",
       switchLangAria: "Cambiar a español",
       shuffling: "No moves left: shuffling…",
       boardCleared: "Board cleared!",
@@ -206,6 +215,12 @@
       close: "Cerrar",
       rotate: "Gira tu teléfono en vertical para jugar",
       switchLang: "English",
+      musicOn: "Música: sí",
+      musicOff: "Música: no",
+      sfxOn: "Sonidos: sí",
+      sfxOff: "Sonidos: no",
+      mute: "Silenciar",
+      unmute: "Activar sonido",
       switchLangAria: "Switch to English",
       shuffling: "Sin movimientos: mezclando…",
       boardCleared: "¡Tablero limpio!",
@@ -759,6 +774,7 @@
     grid[i] = cell;
     setCell(els[i], cell);
     playOnce(els[i], "born");
+    Sound.play("special");
   }
 
   // Rayos que se están mostrando y que aún no se aplicaron (ver applyEffects)
@@ -769,6 +785,7 @@
   function showBeam(index, special, color = null) {
     const horizontal = special === STRIPED_H;
     const dir = horizontal ? "h" : "v";
+    Sound.play("beam");
     const parts = [];
 
     const beam = document.createElement("div");
@@ -868,6 +885,9 @@
       setCell(els[i], grid[i]);
     }
     if (!clear.size) return;
+    const pops = [...clear].filter((i) => popCells.has(i)).length;
+    if (pops) Sound.play("match", { combo, count: pops });
+    if (clear.size - pops >= 2) Sound.play("boom", { count: clear.size - pops });
     addScore(clear.size * POINTS_PER_CANDY * combo, combo);
     await removeCells(clear, popCells, sweepDelays(clear, beams));
   }
@@ -875,6 +895,7 @@
   // Si el tablero se queda sin combinaciones posibles, se mezcla (no es culpa del jugador)
   async function reshuffle() {
     showMessage(t("shuffling"));
+    Sound.play("shuffle");
     els.forEach((el) => el.classList.add("pop"));
     await wait(TIME.pop);
     grid = shuffled(grid);
@@ -961,6 +982,7 @@
     const after = starsFor(score, level);
     if (after > before) {
       showMessage(t("starMessages")[after], 2000);
+      Sound.play("star", { n: after });
     } else if (combo >= 2) {
       showMessage(t("combo", combo));
     }
@@ -988,6 +1010,8 @@
     await wait(700); // una pausa para que se vea cómo quedó el tablero
     if (currentScreen !== "game") return; // salió del juego durante la bonificación
 
+    Sound.music(null);
+    Sound.play(won ? "win" : "lose");
     resultTitleEl.textContent = won ? t("levelComplete") : t("levelFailed");
     let text;
     if (!won) text = t("missedBy", formatNumber(level.target - score));
@@ -1001,8 +1025,12 @@
     resultStars.forEach((star, i) => {
       star.classList.remove("earned");
       star.style.animationDelay = `${300 + i * 300}ms`;
-      if (i < stars) star.classList.add("earned");
+      if (i < stars) {
+        star.classList.add("earned");
+        setTimeout(() => Sound.play("resultStar", { i }), 900 + i * 300);
+      }
     });
+    if (reward) setTimeout(() => Sound.play("reward"), 1000 + stars * 300 + 300);
 
     if (won) {
       primaryBtn.textContent = t("nextLevel");
@@ -1048,6 +1076,7 @@
   // Bomba de color intercambiada con otro caramelo
   async function bombSwap(bomb, other) {
     const target = grid[other];
+    Sound.play("bomb");
 
     if (target.special === BOMB) {
       // bomba + bomba: limpia el tablero completo
@@ -1169,6 +1198,7 @@
     rushSkip = false;
     rushBannerEl.hidden = false;
     playOnce(rushBannerEl, "show");
+    Sound.play("rush");
     showMessage(t("tapToSkip"), 2500);
     // Si se pasa del tiempo máximo, termina como si el jugador la hubiera saltado
     const timer = setTimeout(() => (rushSkip = true), RUSH.maxTime);
@@ -1224,6 +1254,7 @@
     const move = () => { if (!free) useMove(); };
 
     try {
+      Sound.play("swap");
       await swapCells(a, b);
       const A = grid[a];
       const B = grid[b];
@@ -1241,6 +1272,7 @@
           move();
           await resolveMatches(matches, { a, b }, 1);
         } else if (!free) {
+          Sound.play("invalid");
           await swapCells(a, b); // no sirvió: los caramelos regresan (no gasta movimiento)
           return;
         }
@@ -1317,6 +1349,7 @@
     try {
       spendBooster("hammer");
       playOnce(els[i], "smash");
+      Sound.play("hammer");
       vibrate();
       await wait(220);
       await applyEffects(expandEffects(grid, [i]), new Set(), 1);
@@ -1333,6 +1366,7 @@
     spendBooster("moves");
     movesLeft += BOOSTERS.extraMoves;
     bonusMoves += BOOSTERS.extraMoves;
+    Sound.play("extraMoves");
     updateHud();
     bump(movesBoxEl);
     showMessage(t("movesAdded"));
@@ -1370,6 +1404,7 @@
       return;
     }
     armedBooster = type;
+    Sound.play("select");
     clearSelection();
     renderBoosters();
     showMessage(t("boosterHint")[type], 6000);
@@ -1447,6 +1482,7 @@
     clearSelection();
     selected = i;
     els[i].classList.add("selected");
+    Sound.play("select");
   }
 
   function clearSelection() {
@@ -1631,6 +1667,7 @@
   function loseLife() {
     const L = refreshLives();
     if (L.count >= LIVES.max) L.since = Date.now(); // empieza a recargarse desde ahora
+    if (L.count > 0) Sound.play("lifeLost");
     L.count = Math.max(0, L.count - 1);
     L.pending = null;
     saveProgress();
@@ -1730,6 +1767,8 @@
     hideResult();
     level = generateLevel(n);
     applyWorld(n);
+    Sound.music(worldOf(n).id);
+    Sound.play("levelStart");
     activeColors = level.colors;
     movesLeft = level.moves;
     score = 0;
@@ -1813,6 +1852,7 @@
       return;
     }
     hideResult();
+    Sound.music("menu");
     if (location.hash === "#mapa") {
       showScreen("map");
       renderMap();
@@ -1988,6 +2028,7 @@
       el.setAttribute("aria-label", t(el.dataset.i18nAria));
     });
     $("langToggle").setAttribute("aria-label", t("switchLangAria"));
+    renderSoundButtons();
     $("langToggle").lang = lang === "en" ? "es" : "en";
   }
 
@@ -2000,6 +2041,62 @@
     if (currentScreen === "game" && level) updateHud();
     renderLives();
     renderBoosters();
+  });
+
+  // ---------- Música y sonidos ----------
+  // En la portada hay un botón para la música y otro para los efectos.
+  // En el juego, un solo botón lo silencia todo (y lo vuelve a dejar como estaba).
+
+  const SOUND_PREV_KEY = "marshmallowPals.soundBeforeMute";
+
+  function renderSoundButtons() {
+    const s = Sound.settings;
+    $("musicToggle").querySelector("[data-label]").textContent = t(s.music ? "musicOn" : "musicOff");
+    $("musicToggle").setAttribute("aria-pressed", !!s.music);
+    $("musicToggle").classList.toggle("off", !s.music);
+    $("sfxToggle").querySelector("[data-label]").textContent = t(s.sfx ? "sfxOn" : "sfxOff");
+    $("sfxToggle").setAttribute("aria-pressed", !!s.sfx);
+    $("sfxToggle").classList.toggle("off", !s.sfx);
+    const anyOn = s.music || s.sfx;
+    const mute = $("gameMute");
+    mute.textContent = anyOn ? "🔊" : "🔇";
+    mute.setAttribute("aria-label", t(anyOn ? "mute" : "unmute"));
+    mute.title = t(anyOn ? "mute" : "unmute");
+    mute.classList.toggle("off", !anyOn);
+  }
+
+  $("musicToggle").addEventListener("click", () => {
+    Sound.setMusic(!Sound.settings.music);
+    renderSoundButtons();
+  });
+
+  $("sfxToggle").addEventListener("click", () => {
+    Sound.setSfx(!Sound.settings.sfx);
+    renderSoundButtons();
+    Sound.play("click");
+  });
+
+  $("gameMute").addEventListener("click", () => {
+    const s = Sound.settings;
+    if (s.music || s.sfx) {
+      try { localStorage.setItem(SOUND_PREV_KEY, JSON.stringify({ music: s.music, sfx: s.sfx })); } catch (e) { /* nada */ }
+      Sound.setMusic(false);
+      Sound.setSfx(false);
+    } else {
+      let prev = null;
+      try { prev = JSON.parse(localStorage.getItem(SOUND_PREV_KEY) || "null"); } catch (e) { /* nada */ }
+      if (!prev || (!prev.music && !prev.sfx)) prev = { music: true, sfx: true };
+      Sound.setMusic(prev.music);
+      Sound.setSfx(prev.sfx);
+    }
+    renderSoundButtons();
+  });
+
+  // Un "clic" suave en los botones de los menús (los del tablero tienen sus propios sonidos)
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn || btn.closest(".boosters") || btn.id === "sfxToggle") return;
+    Sound.play("click");
   });
 
   // ---------- Arranque ----------
