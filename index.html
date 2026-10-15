@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=21">
+  <link rel="stylesheet" href="style.css?v=22">
 </head>
 <body>
   <!-- ===== PORTADA ===== -->
@@ -158,12 +158,22 @@
     </div>
   </div>
 
+  <!-- Tutorial: foco, manito y globo de texto (se dibujan encima de todo) -->
+  <div id="tutorial" class="tutorial" hidden>
+    <div id="tutSpot" class="tut-spot" hidden></div>
+    <div id="tutHand" class="tut-hand" aria-hidden="true" hidden>👆</div>
+    <div id="tutBubble" class="tut-bubble" role="dialog" aria-live="polite" hidden>
+      <p id="tutText"></p>
+      <button id="tutBtn" class="restart primary" type="button">OK</button>
+    </div>
+  </div>
+
   <div class="rotate-notice" role="alert">
     <div class="phone" aria-hidden="true">📱</div>
     <p data-i18n="rotate">Turn your phone upright to play</p>
   </div>
 
   <script src="audio.js?v=1"></script>
-  <script src="script.js?v=20"></script>
+  <script src="script.js?v=21"></script>
 </body>
 </html>

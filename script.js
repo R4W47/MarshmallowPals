@@ -141,6 +141,18 @@
       close: "Close",
       rotate: "Turn your phone upright to play",
       switchLang: "Español",
+      tutMatch3: "Swipe this pal to line up 3 of the same kind!",
+      tutGoal: "Every match gives you points. Fill this bar to reach the target and earn up to 3 stars ⭐",
+      tutMoves: "Each swap uses one move. Reach the target before you run out!",
+      tutMake4: "Line up 4 in a row to make a special striped pal!",
+      tutMakeL: "Match in an L or T shape to make a wrapped pal!",
+      tutBoosters: "Stuck? Use power-ups! 🔨 breaks one pal, 🔀 swaps any two, +5 gives extra moves and 🌀 shuffles the board. They don't use moves.",
+      tipStriped: "Striped pal! Match it to clear a whole row or column.",
+      tipWrapped: "Wrapped pal! Match it to blow up everything around it — twice!",
+      tipBomb: "Color bomb! Swap it with any pal to clear every pal of that color.",
+      tipLives: "You lost a life ❤️ Lives refill by themselves: one every 30 minutes.",
+      tutOk: "Got it!",
+      tutNext: "Next",
       musicOn: "Music: on",
       musicOff: "Music: off",
       sfxOn: "Sounds: on",
@@ -215,6 +227,18 @@
       close: "Cerrar",
       rotate: "Gira tu teléfono en vertical para jugar",
       switchLang: "English",
+      tutMatch3: "¡Desliza este animalito para juntar 3 iguales!",
+      tutGoal: "Cada combinación te da puntos. Llena esta barra para llegar al objetivo y ganar hasta 3 estrellas ⭐",
+      tutMoves: "Cada intercambio gasta un movimiento. ¡Llega al objetivo antes de que se acaben!",
+      tutMake4: "¡Junta 4 en línea para crear un animalito rayado especial!",
+      tutMakeL: "¡Combina en forma de L o T para crear un animalito envuelto!",
+      tutBoosters: "¿Atascado? ¡Usa los power-ups! 🔨 rompe un animalito, 🔀 cambia dos cualesquiera, +5 da movimientos extra y 🌀 mezcla el tablero. No gastan movimientos.",
+      tipStriped: "¡Animalito rayado! Combínalo para borrar toda una fila o columna.",
+      tipWrapped: "¡Animalito envuelto! Combínalo para que explote todo a su alrededor... ¡dos veces!",
+      tipBomb: "¡Bomba de color! Cámbiala por cualquier animalito para borrar todos los de ese color.",
+      tipLives: "Perdiste una vida ❤️ Las vidas se recargan solas: una cada 30 minutos.",
+      tutOk: "¡Entendido!",
+      tutNext: "Siguiente",
       musicOn: "Música: sí",
       musicOff: "Música: no",
       sfxOn: "Sonidos: sí",
@@ -775,6 +799,7 @@
     setCell(els[i], cell);
     playOnce(els[i], "born");
     Sound.play("special");
+    tutorialSpecialBorn(cell);
   }
 
   // Rayos que se están mostrando y que aún no se aplicaron (ver applyEffects)
@@ -995,6 +1020,8 @@
 
   async function finishLevel() {
     ended = true;
+    hideTutorial();
+    pendingTip = null;
     armedBooster = null;
     renderBoosters();
     clearSelection();
@@ -1014,7 +1041,13 @@
     Sound.play(won ? "win" : "lose");
     resultTitleEl.textContent = won ? t("levelComplete") : t("levelFailed");
     let text;
-    if (!won) text = t("missedBy", formatNumber(level.target - score));
+    if (!won) {
+      text = t("missedBy", formatNumber(level.target - score));
+      if (!tutSeen().tipLives) {
+        markSeen("tipLives");
+        text += "\n" + t("tipLives");
+      }
+    }
     else if (stars === 3 && spareMoves > 0)
       text = t("threeStarsSpare", spareMoves);
     else if (record.isNewBest && record.previousBest > 0) text = t("newBest");
@@ -1247,6 +1280,8 @@
 
   async function playTurn(a, b) {
     if (busy || ended || a === null || b === null || !areAdjacent(a, b)) return;
+    if (!tutorialAllows(a, b)) return;
+    if (tipOpen) hideTutorial(); // un consejo abierto se cierra al jugar
     const free = armedBooster === "swap"; // cambio libre: no necesita combinar ni gasta movimiento
     busy = true;
     clearSelection();
@@ -1283,6 +1318,8 @@
       busy = false;
       renderBoosters();
     }
+    tutorialAfterMove();
+    flushTip();
   }
 
   // =====================================================================
@@ -1359,6 +1396,7 @@
       busy = false;
       renderBoosters();
     }
+    flushTip();
   }
 
   // +5 movimientos
@@ -1390,7 +1428,7 @@
   // +5 y mezclar se confirman con un segundo toque (para no gastarlos sin querer).
   boostersEl.addEventListener("click", (e) => {
     const btn = e.target.closest(".booster");
-    if (!btn || busy || ended || rushing) return;
+    if (!btn || busy || ended || rushing || tutorialBlocking()) return;
     const type = btn.dataset.booster;
 
     if (armedBooster === type) {
@@ -1780,10 +1818,14 @@
     saveProgress();
 
     grid = createGrid(seededRandom(level.seed)); // el tablero inicial es siempre el mismo
+    grid = tutorialGrid(n) || grid;               // en los niveles con tutorial, uno que sirva para enseñar
+    pendingTip = null;
     render("appear");
     updateHud();
     renderBoosters();
-    showMessage(level.hard ? t("hardStart", n) : t("levelStart", n, formatNumber(level.target)), 3000);
+    if (!startTutorial()) {
+      showMessage(level.hard ? t("hardStart", n) : t("levelStart", n, formatNumber(level.target)), 3000);
+    }
   }
 
   // =====================================================================
@@ -1801,6 +1843,7 @@
 
   function showScreen(name) {
     if (name !== "game" && rushing) rushSkip = true;
+    if (name !== "game") hideTutorial();
     for (const [key, el] of Object.entries(screens)) el.hidden = key !== name;
     document.body.dataset.screen = name;
     currentScreen = name;
@@ -2041,6 +2084,294 @@
     if (currentScreen === "game" && level) updateHud();
     renderLives();
     renderBoosters();
+  });
+
+  // =====================================================================
+  // TUTORIAL DE LOS PRIMEROS NIVELES
+  // =====================================================================
+  // Nivel 1: una jugada guiada (juntar 3) y después se explican la barra y los movimientos.
+  // Nivel 2: jugada guiada que crea un rayado (4 en línea).
+  // Nivel 3: jugada guiada que crea un envuelto (L o T).
+  // Nivel 4: se presentan los power-ups.
+  // Además, la primera vez que nace cada especial (rayado, envuelto, bomba) aparece
+  // un consejo corto, y la primera vez que se pierde una vida se explica la recarga.
+  // Solo se muestra una vez: lo ya visto se guarda en progress.tutorial.
+  // Si el jugador ya había pasado el nivel (por ejemplo, jugadores de antes), no se repite.
+
+  const TUTORIAL_LEVELS = {
+    1: { find: "simple", steps: [
+      { move: true, text: "tutMatch3" },
+      { anchor: "goal", text: "tutGoal" },
+      { anchor: "movesBox", text: "tutMoves" },
+    ] },
+    2: { find: "striped", steps: [{ move: true, text: "tutMake4" }] },
+    3: { find: "wrapped", steps: [{ move: true, text: "tutMakeL" }] },
+    4: { steps: [{ anchor: "boosters", text: "tutBoosters" }] },
+  };
+  const SPECIAL_TIPS = { [STRIPED_H]: "tipStriped", [STRIPED_V]: "tipStriped", [WRAPPED]: "tipWrapped", [BOMB]: "tipBomb" };
+
+  const tutorialEl = $("tutorial");
+  const tutSpot = $("tutSpot");
+  const tutHand = $("tutHand");
+  const tutBubble = $("tutBubble");
+  const tutText = $("tutText");
+  const tutBtn = $("tutBtn");
+
+  let tut = null;        // tutorial del nivel en curso: { n, steps, index, guide: {a, b} }
+  let tipOpen = false;   // hay un consejo suelto abierto (no bloquea el juego)
+
+  const tutSeen = () => (progress.tutorial = progress.tutorial || {});
+  function markSeen(key) {
+    tutSeen()[key] = true;
+    saveProgress();
+  }
+
+  // ¿Qué especial(es) nacerían con esta jugada?
+  function moveKind(g, a, b) {
+    if (g[a].special || g[b].special) return null;
+    const copy = g.slice();
+    swapIn(copy, a, b);
+    const matches = findMatches(copy);
+    if (!matches.groups.length) return null;
+    const plans = planSpecials(copy, matches, { a, b });
+    if (!plans.length) return matches.cells.size === 3 ? "simple" : null;
+    if (plans.length > 1) return null;
+    const sp = plans[0].cell.special;
+    if (sp === STRIPED_H || sp === STRIPED_V) return "striped";
+    return sp === WRAPPED ? "wrapped" : null;
+  }
+
+  // Busca en el tablero una jugada del tipo pedido, la más cercana al centro
+  function findGuideMove(g, kind) {
+    let best = null;
+    for (let i = 0; i < SIZE; i++) {
+      const neighbors = [];
+      if (colOf(i) < WIDTH - 1) neighbors.push(i + 1);
+      if (rowOf(i) < WIDTH - 1) neighbors.push(i + WIDTH);
+      for (const n of neighbors) {
+        if (moveKind(g, i, n) !== kind) continue;
+        const dist = Math.abs(rowOf(i) - 3.5) + Math.abs(colOf(i) - 3.5);
+        if (!best || dist < best.dist) best = { a: i, b: n, dist };
+      }
+    }
+    return best;
+  }
+
+  const tutorialPending = (n) =>
+    TUTORIAL_LEVELS[n] && !tutSeen()["L" + n] && !(progress.levels[n] && progress.levels[n].stars > 0);
+
+  // Al empezar un nivel con tutorial: si hace falta, elige un tablero (siempre el mismo)
+  // que tenga la jugada que se quiere enseñar. Devuelve el tablero o null.
+  function tutorialGrid(n) {
+    hideTutorial();
+    tut = null;
+    if (!tutorialPending(n)) return null;
+    const def = TUTORIAL_LEVELS[n];
+    if (!def.find) {
+      tut = { n, steps: def.steps, index: -1, guide: null };
+      return null;
+    }
+    for (let k = 0; k < 300; k++) {
+      const g = createGrid(seededRandom(level.seed + 1000 + k * 101));
+      const guide = findGuideMove(g, def.find);
+      if (guide) {
+        tut = { n, steps: def.steps, index: -1, guide };
+        return g;
+      }
+    }
+    return null; // muy improbable: el nivel se juega sin tutorial
+  }
+
+  function startTutorial() {
+    if (!tut) return false;
+    setTimeout(() => tut && tut.index === -1 && nextTutorialStep(), TIME.appear + 250);
+    return true;
+  }
+
+  function nextTutorialStep() {
+    if (!tut || currentScreen !== "game") return;
+    tut.index++;
+    const step = tut.steps[tut.index];
+    if (!step) {
+      markSeen("L" + tut.n);
+      tut = null;
+      hideTutorial();
+      return;
+    }
+    if (step.move) showGuide(step);
+    else showInfo(step);
+  }
+
+  // ¿Puede hacerse esta jugada? (durante la jugada guiada, solo la indicada)
+  function tutorialAllows(a, b) {
+    if (!tut || tut.index < 0) return true;
+    const step = tut.steps[tut.index];
+    if (!step || !step.move) return false; // hay un mensaje abierto: primero "Entendido"
+    const g = tut.guide;
+    const ok = (a === g.a && b === g.b) || (a === g.b && b === g.a);
+    if (!ok) playOnce(tutHand, "nudge");
+    return ok;
+  }
+
+  // Bloquea power-ups y toques mientras el tutorial espera algo concreto
+  const tutorialBlocking = () => !!(tut && tut.index >= 0);
+
+  function tutorialAfterMove() {
+    if (!tut || tut.index < 0 || !tut.steps[tut.index].move) return;
+    clearGuide();
+    if (ended) {
+      markSeen("L" + tut.n);
+      tut = null;
+      hideTutorial();
+      return;
+    }
+    nextTutorialStep();
+  }
+
+  // ---------- Dibujo: foco, mano y globo ----------
+
+  function cellRect(i) {
+    const board = boardEl.getBoundingClientRect();
+    const size = board.width / WIDTH;
+    return { left: board.left + colOf(i) * size, top: board.top + rowOf(i) * size, size };
+  }
+
+  function spotlight(rect, pad = 6) {
+    if (!rect) {
+      tutSpot.hidden = true;
+      return;
+    }
+    tutSpot.hidden = false;
+    tutSpot.style.left = `${rect.left - pad}px`;
+    tutSpot.style.top = `${rect.top - pad}px`;
+    tutSpot.style.width = `${rect.width + pad * 2}px`;
+    tutSpot.style.height = `${rect.height + pad * 2}px`;
+  }
+
+  // Coloca el globo debajo de lo resaltado (o arriba si no cabe)
+  function placeBubble(rect) {
+    tutBubble.style.top = "0px";
+    const h = tutBubble.offsetHeight;
+    const gap = 16;
+    const below = rect.top + rect.height + gap;
+    const top = below + h < window.innerHeight - 8 ? below : Math.max(8, rect.top - gap - h);
+    tutBubble.style.top = `${top}px`;
+    tutBubble.classList.toggle("above", top < rect.top);
+  }
+
+  function guideRect() {
+    const { a, b } = tut.guide;
+    const ra = cellRect(a);
+    const rb = cellRect(b);
+    const left = Math.min(ra.left, rb.left);
+    const top = Math.min(ra.top, rb.top);
+    return {
+      left, top,
+      width: Math.max(ra.left, rb.left) + ra.size - left,
+      height: Math.max(ra.top, rb.top) + ra.size - top,
+      size: ra.size, ra, rb,
+    };
+  }
+
+  function showGuide(step) {
+    tutorialEl.hidden = false;
+    tutorialEl.classList.remove("modal");
+    const r = guideRect();
+    spotlight(r);
+    tutHand.hidden = false;
+    tutHand.style.left = `${r.ra.left + r.size * 0.55}px`;
+    tutHand.style.top = `${r.ra.top + r.size * 0.55}px`;
+    tutHand.style.setProperty("--dx", `${r.rb.left - r.ra.left}px`);
+    tutHand.style.setProperty("--dy", `${r.rb.top - r.ra.top}px`);
+    tutText.textContent = t(step.text);
+    tutBtn.hidden = true;
+    tutBubble.hidden = false;
+    placeBubble(r);
+    els[tut.guide.a] && els[tut.guide.a].classList.add("tut-focus");
+    els[tut.guide.b] && els[tut.guide.b].classList.add("tut-focus");
+  }
+
+  function clearGuide() {
+    tutHand.hidden = true;
+    els.forEach((el) => el && el.classList.remove("tut-focus"));
+  }
+
+  const ANCHORS = {
+    goal: () => document.querySelector("#game .goal"),
+    movesBox: () => movesBoxEl,
+    boosters: () => boostersEl,
+  };
+
+  function showInfo(step) {
+    clearGuide();
+    tutorialEl.hidden = false;
+    tutorialEl.classList.add("modal");
+    const r = ANCHORS[step.anchor]().getBoundingClientRect();
+    spotlight(r);
+    tutText.textContent = t(step.text);
+    const last = tut.index === tut.steps.length - 1;
+    tutBtn.textContent = t(last ? "tutOk" : "tutNext");
+    tutBtn.hidden = false;
+    tutBubble.hidden = false;
+    placeBubble(r);
+    tutBtn.focus();
+  }
+
+  // Consejo suelto (no bloquea): aparece encima del tablero
+  function showTip(key) {
+    if (tut || tipOpen || tutSeen()[key]) return;
+    markSeen(key);
+    tipOpen = true;
+    tutorialEl.hidden = false;
+    tutorialEl.classList.remove("modal");
+    spotlight(null);
+    tutHand.hidden = true;
+    tutText.textContent = t(key);
+    tutBtn.textContent = t("tutOk");
+    tutBtn.hidden = false;
+    tutBubble.hidden = false;
+    const board = boardEl.getBoundingClientRect();
+    tutBubble.style.top = `${Math.max(8, board.top + 8)}px`;
+    tutBubble.classList.remove("above");
+  }
+
+  function hideTutorial() {
+    tipOpen = false;
+    clearGuide();
+    tutorialEl.hidden = true;
+    tutBubble.hidden = true;
+    tutSpot.hidden = true;
+  }
+
+  // Nace un especial durante el juego: la primera vez de cada tipo, un consejo.
+  // En los niveles 2 y 3, el consejo llega justo después de la jugada guiada.
+  let pendingTip = null;
+  function tutorialSpecialBorn(cell) {
+    if (rushing || ended || !cell.special) return;
+    const key = SPECIAL_TIPS[cell.special];
+    if (key && !tutSeen()[key] && !pendingTip) pendingTip = key;
+  }
+
+  function flushTip() {
+    if (!pendingTip || ended || currentScreen !== "game") return;
+    const key = pendingTip;
+    pendingTip = null;
+    showTip(key);
+  }
+
+  tutBtn.addEventListener("click", () => {
+    if (tipOpen) {
+      hideTutorial();
+      return;
+    }
+    nextTutorialStep();
+  });
+
+  window.addEventListener("resize", () => {
+    if (tutorialEl.hidden || !tut || tut.index < 0) return;
+    const step = tut.steps[tut.index];
+    if (step && step.move) showGuide(step);
+    else if (step) showInfo(step);
   });
 
   // ---------- Música y sonidos ----------
