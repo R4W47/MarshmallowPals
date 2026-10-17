@@ -311,15 +311,15 @@
   //   <id>-mapa.jpg   fondo del mapa (vertical, que se pueda repetir hacia arriba)
   // Si falta alguna imagen, se usa el degradado "fallback" de ese mundo.
   const LEVELS_PER_WORLD = 100;
-  const WORLD_IMAGE_VERSION = 2; // súbelo si reemplazas imágenes con el mismo nombre
+  const WORLD_IMAGE_VERSION = 3; // súbelo si reemplazas imágenes con el mismo nombre
   const WORLDS = [
     { id: "pradera", edge: "#9acb78", name: { en: "Green Meadow", es: "Pradera Verde" }, color: "#43a047",
       fallback: "linear-gradient(#bfe9ff, #d8f5c4 35%, #8bc34a 70%, #5a9e2f)" },
-    { id: "playa", edge: "#b2d9d3", name: { en: "Sunny Beach", es: "Playa Soleada" }, color: "#039be5",
+    { id: "playa", edge: "#a3dedf", sides: "sea", name: { en: "Sunny Beach", es: "Playa Soleada" }, color: "#039be5",
       fallback: "linear-gradient(#aee4ff, #7fd3f7 40%, #f6e3a8 70%, #e9c97a)" },
-    { id: "bosque", edge: "#c1d4b9", name: { en: "Mushroom Forest", es: "Bosque de Hongos" }, color: "#8d6e63",
+    { id: "bosque", name: { en: "Mushroom Forest", es: "Bosque de Hongos" }, color: "#8d6e63",
       fallback: "linear-gradient(#cfe8c8, #7cb36a 40%, #4e7d3a 75%, #3b5e2b)" },
-    { id: "selva", edge: "#acc8b4", name: { en: "Tropical Jungle", es: "Selva Tropical" }, color: "#00897b",
+    { id: "selva", name: { en: "Tropical Jungle", es: "Selva Tropical" }, color: "#00897b",
       fallback: "linear-gradient(#b9f0d8, #4fbf8f 40%, #1f8a63 75%, #13684a)" },
     { id: "desierto", name: { en: "Cactus Desert", es: "Desierto de Cactus" }, color: "#fb8c00",
       fallback: "linear-gradient(#ffe0b2, #ffcc80 40%, #f0a85b 75%, #d9853b)" },
@@ -1962,11 +1962,11 @@
     }
     // una franja de fondo por cada mundo visible en el mapa
     let html = "";
-    const FADE = 160; // px en que un mundo se mezcla con el siguiente
+    const FADE = 300; // px en que un mundo se mezcla con el siguiente
     for (let w = worldOf(1); w.first <= count; w = worldOf(w.last + 1)) {
       const bottom = w.first === 1 ? height : pos(w.first).y + STEP / 2 + FADE;
       const top = w.last >= count ? 0 : pos(w.last).y - STEP / 2;
-      html += `<div class="world-band${w.first === 1 ? " first" : ""}" style="top:${top}px; height:${bottom - top}px;
+      html += `<div class="world-band${w.first === 1 ? " first" : ""}${w.sides ? ` sides-${w.sides}` : ""}${w.edge ? " has-edge" : ""}" style="top:${top}px; height:${bottom - top}px;
         --map-image:url('${worldImage(w.id, "-mapa")}'); --bg-fallback:${w.fallback}${w.edge ? `; --map-edge:${w.edge}` : ""}"></div>`;
     }
 

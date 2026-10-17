@@ -318,8 +318,8 @@ button {
   width: 100vw;
   transform: translateX(-50%);
   background: var(--map-image) center bottom / 100% auto repeat-y, var(--bg-fallback);
-  -webkit-mask-image: linear-gradient(to top, transparent, #000 160px);
-  mask-image: linear-gradient(to top, transparent, #000 160px);
+  -webkit-mask-image: linear-gradient(to top, transparent, rgba(0,0,0,.08) 60px, rgba(0,0,0,.5) 150px, rgba(0,0,0,.92) 240px, #000 300px);
+  mask-image: linear-gradient(to top, transparent, rgba(0,0,0,.08) 60px, rgba(0,0,0,.5) 150px, rgba(0,0,0,.92) 240px, #000 300px);
 }
 
 .world-band.first {
@@ -347,9 +347,8 @@ button {
     filter: blur(18px) saturate(1.1) brightness(1.03);
   }
 
-  /* el mapa nítido en el centro, sin difuminar los árboles: a cada lado
-     sigue una franja lisa del color del borde del mapa, y es esa franja
-     la que se funde con el fondo borroso */
+  /* el mapa nítido en el centro. Sus bordes se funden con los lados sin
+     tocar los adornos: */
   .world-band::after {
     content: "";
     position: absolute;
@@ -358,10 +357,38 @@ button {
     left: 50%;
     width: calc(var(--map-col) + 2 * var(--map-strip));
     transform: translateX(-50%);
+    background: var(--map-image) center bottom / var(--map-col) auto repeat-y;
+    /* mapas con adornos hasta el borde (bosque, selva): un desvanecido corto */
+    -webkit-mask-image: linear-gradient(to right, transparent var(--map-strip), #000 calc(var(--map-strip) + 50px),
+      #000 calc(100% - var(--map-strip) - 50px), transparent calc(100% - var(--map-strip)));
+    mask-image: linear-gradient(to right, transparent var(--map-strip), #000 calc(var(--map-strip) + 50px),
+      #000 calc(100% - var(--map-strip) - 50px), transparent calc(100% - var(--map-strip)));
+  }
+
+  /* mapas con borde liso (pradera) o con agua (playa): el mapa queda entero
+     y es una franja lisa del color del borde la que se funde con los lados */
+  .world-band.has-edge::after {
+    -webkit-mask-image: none;
+    mask-image: none;
     background:
       var(--map-image) center bottom / var(--map-col) auto repeat-y,
-      linear-gradient(to right, transparent, var(--map-edge, transparent) calc(var(--map-strip) * 0.75),
-        var(--map-edge, transparent) calc(100% - var(--map-strip) * 0.75), transparent);
+      linear-gradient(to right, transparent, var(--map-edge) calc(var(--map-strip) * 0.75),
+        var(--map-edge) calc(100% - var(--map-strip) * 0.75), transparent);
+  }
+
+  /* Playa: a los lados no va la imagen borrosa sino mar abierto,
+     que sigue el agua del borde del mapa y se hace más profundo hacia afuera */
+  .world-band.sides-sea {
+    background: #8fd6dc;
+  }
+
+  .world-band.sides-sea::before {
+    inset: 0;
+    filter: none;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='120'%3E%3Cg fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-opacity='.45' stroke-width='2.5'%3E%3Cpath d='M14 30q12-9 24 0t24 0'/%3E%3Cpath d='M128 82q12-9 24 0t24 0'/%3E%3C/g%3E%3Cg fill='%23ffffff' fill-opacity='.7'%3E%3Ccircle cx='96' cy='22' r='1.6'/%3E%3Ccircle cx='190' cy='40' r='1.2'/%3E%3Ccircle cx='60' cy='98' r='1.4'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 220px 120px,
+      linear-gradient(to right, #6cc6d6, #a3dedf calc(50% - var(--map-col) / 2 - var(--map-strip)),
+        #a3dedf calc(50% + var(--map-col) / 2 + var(--map-strip)), #6cc6d6);
   }
 }
 
