@@ -376,6 +376,19 @@ button {
         var(--map-edge) calc(100% - var(--map-strip) * 0.75), transparent);
   }
 
+  /* Bosque: usa <id>-mapa-ancho.jpg, el mismo mapa con una franja extra a cada
+     lado que es el reflejo de sus adornos. Así los arbustos del borde quedan
+     completos, y el desvanecido cae sobre esa franja extra, no sobre el mapa. */
+  .world-band.has-wide::after {
+    --wide-panel: calc(var(--map-col) * 240 / 768);
+    width: calc(var(--map-col) + 2 * var(--wide-panel));
+    background: var(--map-wide) center bottom / 100% auto repeat-y;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 calc(var(--wide-panel) * 0.7),
+      #000 calc(100% - var(--wide-panel) * 0.7), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 calc(var(--wide-panel) * 0.7),
+      #000 calc(100% - var(--wide-panel) * 0.7), transparent);
+  }
+
   /* Playa: a los lados no va la imagen borrosa sino mar abierto,
      que sigue el agua del borde del mapa y se hace más profundo hacia afuera */
   .world-band.sides-sea {
