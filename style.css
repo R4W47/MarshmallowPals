@@ -333,6 +333,7 @@ button {
 @media (min-width: 700px) {
   .world-band {
     --map-col: 760px;
+    --map-strip: 110px;
     overflow: hidden;
     background: var(--bg-fallback);
   }
@@ -346,18 +347,21 @@ button {
     filter: blur(18px) saturate(1.1) brightness(1.03);
   }
 
-  /* el mapa nítido en el centro, con bordes que se funden con los lados */
+  /* el mapa nítido en el centro, sin difuminar los árboles: a cada lado
+     sigue una franja lisa del color del borde del mapa, y es esa franja
+     la que se funde con el fondo borroso */
   .world-band::after {
     content: "";
     position: absolute;
     top: 0;
     bottom: 0;
     left: 50%;
-    width: var(--map-col);
+    width: calc(var(--map-col) + 2 * var(--map-strip));
     transform: translateX(-50%);
-    background: var(--map-image) center bottom / 100% auto repeat-y;
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 90px, #000 calc(100% - 90px), transparent);
-    mask-image: linear-gradient(to right, transparent, #000 90px, #000 calc(100% - 90px), transparent);
+    background:
+      var(--map-image) center bottom / var(--map-col) auto repeat-y,
+      linear-gradient(to right, transparent, var(--map-edge, transparent) calc(var(--map-strip) * 0.75),
+        var(--map-edge, transparent) calc(100% - var(--map-strip) * 0.75), transparent);
   }
 }
 
