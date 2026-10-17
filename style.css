@@ -327,12 +327,42 @@ button {
   mask-image: none;
 }
 
-/* En computadora la imagen no se estira de más: se repite a lo ancho */
+/* En computadora: el mapa queda como una sola columna centrada (sin repetirse
+   a lo ancho) y los lados se rellenan con la misma imagen agrandada y
+   desenfocada, así cada mundo conserva sus colores sin verse cortado. */
 @media (min-width: 700px) {
   .world-band {
-    background-size: 700px auto, auto;
-    background-repeat: repeat, no-repeat;
+    --map-col: 760px;
+    overflow: hidden;
+    background: var(--bg-fallback);
   }
+
+  /* relleno de los lados: la imagen grande y borrosa */
+  .world-band::before {
+    content: "";
+    position: absolute;
+    inset: -40px;
+    background: var(--map-image) center bottom / 140% auto repeat-y;
+    filter: blur(18px) saturate(1.1) brightness(1.03);
+  }
+
+  /* el mapa nítido en el centro, con bordes que se funden con los lados */
+  .world-band::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: var(--map-col);
+    transform: translateX(-50%);
+    background: var(--map-image) center bottom / 100% auto repeat-y;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 90px, #000 calc(100% - 90px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 90px, #000 calc(100% - 90px), transparent);
+  }
+}
+
+@media (min-width: 1300px) {
+  .world-band { --map-col: 900px; }
 }
 
 .map-road {
