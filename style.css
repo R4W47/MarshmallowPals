@@ -376,7 +376,7 @@ button {
         var(--map-edge) calc(100% - var(--map-strip) * 0.75), transparent);
   }
 
-  /* Bosque: usa <id>-mapa-ancho.jpg, el mismo mapa con una franja extra a cada
+  /* Bosque y selva: usan <id>-mapa-ancho.jpg, el mismo mapa con una franja extra a cada
      lado que es el reflejo de sus adornos. Así los arbustos del borde quedan
      completos, y el desvanecido cae sobre esa franja extra, no sobre el mapa. */
   .world-band.has-wide::after {
