@@ -317,14 +317,25 @@ button {
   left: 50%;
   width: 100vw;
   transform: translateX(-50%);
-  background: var(--map-image) center bottom / 100% auto repeat-y, var(--bg-fallback);
+  background: var(--map-image) center bottom / 100% var(--tile-h, auto) repeat-y, var(--bg-fallback);
   -webkit-mask-image: linear-gradient(to top, transparent, rgba(0,0,0,.08) 60px, rgba(0,0,0,.5) 150px, rgba(0,0,0,.92) 240px, #000 300px);
   mask-image: linear-gradient(to top, transparent, rgba(0,0,0,.08) 60px, rgba(0,0,0,.5) 150px, rgba(0,0,0,.92) 240px, #000 300px);
 }
 
-.world-band.first {
+/* el primer mundo, y los que empiezan con una imagen de unión, no se difuminan */
+.world-band.first,
+.world-band.joined {
   -webkit-mask-image: none;
   mask-image: none;
+}
+
+/* Unión entre dos mundos: images/worlds/union-<abajo>-<arriba>.jpg, a todo el ancho */
+.world-join {
+  position: absolute;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  background: var(--join-image) center / 100% 100% no-repeat;
 }
 
 /* En computadora: el mapa queda como una sola columna centrada (sin repetirse
@@ -357,7 +368,7 @@ button {
     left: 50%;
     width: calc(var(--map-col) + 2 * var(--map-strip));
     transform: translateX(-50%);
-    background: var(--map-image) center bottom / var(--map-col) auto repeat-y;
+    background: var(--map-image) center bottom / var(--map-col) var(--tile-h, auto) repeat-y;
     /* mapas con adornos hasta el borde (bosque, selva): un desvanecido corto */
     -webkit-mask-image: linear-gradient(to right, transparent var(--map-strip), #000 calc(var(--map-strip) + 50px),
       #000 calc(100% - var(--map-strip) - 50px), transparent calc(100% - var(--map-strip)));
@@ -371,7 +382,7 @@ button {
     -webkit-mask-image: none;
     mask-image: none;
     background:
-      var(--map-image) center bottom / var(--map-col) auto repeat-y,
+      var(--map-image) center bottom / var(--map-col) var(--tile-h, auto) repeat-y,
       linear-gradient(to right, transparent, var(--map-edge) calc(var(--map-strip) * 0.75),
         var(--map-edge) calc(100% - var(--map-strip) * 0.75), transparent);
   }
@@ -382,7 +393,7 @@ button {
   .world-band.has-wide::after {
     --wide-panel: calc(var(--map-col) * 240 / 768);
     width: calc(var(--map-col) + 2 * var(--wide-panel));
-    background: var(--map-wide) center bottom / 100% auto repeat-y;
+    background: var(--map-wide) center bottom / 100% var(--tile-h, auto) repeat-y;
     -webkit-mask-image: linear-gradient(to right, transparent, #000 calc(var(--wide-panel) * 0.7),
       #000 calc(100% - var(--wide-panel) * 0.7), transparent);
     mask-image: linear-gradient(to right, transparent, #000 calc(var(--wide-panel) * 0.7),
@@ -405,8 +416,40 @@ button {
   }
 }
 
+@media (min-width: 700px) {
+  /* En computadora la unión va nítida en la columna del mapa y,
+     a los lados, la misma imagen agrandada y desenfocada */
+  .world-join {
+    --map-col: 760px;
+    overflow: hidden;
+    background: none;
+  }
+
+  .world-join::before {
+    content: "";
+    position: absolute;
+    inset: -40px;
+    background: var(--join-image) center / cover no-repeat;
+    filter: blur(18px) saturate(1.1) brightness(1.03);
+  }
+
+  .world-join::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: var(--map-col);
+    transform: translateX(-50%);
+    background: var(--join-image) center / 100% 100% no-repeat;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 50px, #000 calc(100% - 50px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 50px, #000 calc(100% - 50px), transparent);
+  }
+}
+
 @media (min-width: 1300px) {
-  .world-band { --map-col: 900px; }
+  .world-band,
+  .world-join { --map-col: 900px; }
 }
 
 .map-road {

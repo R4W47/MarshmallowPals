@@ -337,6 +337,40 @@
 
   const worldImage = (id, suffix = "") => `images/worlds/${id}${suffix}.jpg?v=${WORLD_IMAGE_VERSION}`;
 
+  // Uniones entre mundos en el mapa: images/worlds/union-<mundo de abajo>-<mundo de arriba>.jpg
+  // (ej. union-pradera-playa.jpg). Es una imagen dibujada a propósito que va entre los dos
+  // fondos: su borde de arriba sigue al mapa del mundo de arriba y su borde de abajo al del
+  // mundo de abajo. Si falta, los dos mundos se mezclan con un difuminado como antes.
+  const joinImage = (lower, upper) => worldImage(`union-${lower}-${upper}`);
+
+  // Tamaño real de las imágenes del mapa (se cargan una vez). null = aún cargando o no existe.
+  const imageSizes = {};
+  let mapRedrawPending = false;
+  function imageSize(url) {
+    if (url in imageSizes) return imageSizes[url];
+    imageSizes[url] = null;
+    const img = new Image();
+    img.onload = () => {
+      imageSizes[url] = { w: img.naturalWidth, h: img.naturalHeight };
+      redrawMapSoon();
+    };
+    img.onerror = () => { imageSizes[url] = false; };
+    img.src = url;
+    return null;
+  }
+  // cuando llega una imagen, se vuelve a pintar el mapa sin mover el scroll
+  function redrawMapSoon() {
+    if (mapRedrawPending) return;
+    mapRedrawPending = true;
+    setTimeout(() => {
+      mapRedrawPending = false;
+      if (currentScreen !== "map") return;
+      const scroll = mapScrollEl.scrollTop;
+      renderMap();
+      requestAnimationFrame(() => requestAnimationFrame(() => { mapScrollEl.scrollTop = scroll; }));
+    }, 50);
+  }
+
   // Mundo del nivel n. Al terminar la lista, los mundos se repiten ("Pradera Verde 2"...)
   function worldOf(n) {
     const index = Math.floor((n - 1) / LEVELS_PER_WORLD);
@@ -1950,15 +1984,58 @@
     mapPathEl.style.height = `${height}px`;
 
     // posición de cada nivel: el 1 abajo, subiendo en zigzag suave
-    const FADE = 300; // px en que un mundo se mezcla con el siguiente
+    const FADE = 300; // px en que un mundo se mezcla con el siguiente cuando no hay imagen de unión
     const posY = (n) => height - MAP_PADDING - (n - 1) * STEP; // px desde arriba
-    // abajo de la franja de fondo de cada mundo (la imagen se repite desde ahí hacia arriba)
-    const bandBottom = (w) => (w.first === 1 ? height : posY(w.first) + STEP / 2 + FADE);
+    // ancho con que se dibuja el mapa (igual que en style.css: pantalla completa en celular,
+    // una columna de 760 / 900 px en computadora)
+    const mapW = window.innerWidth < 700 ? window.innerWidth : window.innerWidth < 1300 ? 760 : 900;
+
+    // Unión entre el mundo w y el siguiente (si se ve en el mapa y su imagen existe)
+    const joins = {};
+    function joinOf(w) {
+      if (w.last >= count) return null;
+      if (w.first in joins) return joins[w.first];
+      const next = worldOf(w.last + 1);
+      const url = joinImage(w.id, next.id);
+      const size = imageSize(url);
+      let join = null;
+      if (size) {
+        const h = mapW * size.h / size.w;
+        const mid = posY(w.last) - STEP / 2; // la línea entre los dos mundos
+        join = { url, top: mid - h / 2, bottom: mid + h / 2 };
+      }
+      return (joins[w.first] = join);
+    }
+    const prevWorld = (w) => (w.first === 1 ? null : worldOf(w.first - 1));
+
+    // franja de fondo de cada mundo: dónde empieza, dónde termina y qué alto tiene su imagen
+    function bandOf(w) {
+      const prev = prevWorld(w);
+      const below = prev && joinOf(prev);
+      const above = joinOf(w);
+      const bottom = w.first === 1 ? height : below ? below.top + 1 : posY(w.first) + STEP / 2 + FADE;
+      const top = w.last >= count ? 0 : above ? above.bottom - 1 : posY(w.last) - STEP / 2;
+      const size = imageSize(worldImage(w.id, "-mapa"));
+      let tileH = size ? mapW * size.h / size.w : (w.lane ? w.lane.ratio * mapW : 0);
+      // Si arriba hay una unión, la imagen se estira un poquito (menos de un 3% en un mundo
+      // de 100 niveles) para que termine justo en su borde y empalme con la unión.
+      let stretch = 1;
+      if (above && tileH) {
+        const span = bottom - 1 - top; // de la unión de abajo (o el inicio) a la de arriba
+        const tiles = Math.max(1, Math.round(span / tileH));
+        stretch = span / tiles / tileH;
+        tileH *= stretch;
+      }
+      return { top, bottom, tileH, below, above };
+    }
+    const bands = {};
+    const band = (w) => bands[w.first] || (bands[w.first] = bandOf(w));
 
     // En mundos con "lane", el zigzag sigue la arena libre de su imagen
     function laneX(n, w) {
-      const tileH = w.lane.ratio * window.innerWidth; // alto de la imagen en pantalla
-      const fromBottom = (((bandBottom(w) - posY(n)) % tileH) + tileH) % tileH;
+      const b = band(w);
+      const tileH = b.tileH || w.lane.ratio * mapW; // alto de la imagen en pantalla
+      const fromBottom = (((b.bottom - posY(n)) % tileH) + tileH) % tileH;
       const f = 1 - fromBottom / tileH; // 0 = arriba de la imagen, 1 = abajo
       const rows = w.lane.free;
       const k = f * rows.length - 0.5;
@@ -1990,14 +2067,21 @@
         d += ` C ${q.x} ${midY} ${p.x} ${midY} ${p.x} ${p.y}`;
       }
     }
-    // una franja de fondo por cada mundo visible en el mapa
+    // una franja de fondo por cada mundo visible en el mapa, y encima las uniones
     let html = "";
+    let joinsHtml = "";
     for (let w = worldOf(1); w.first <= count; w = worldOf(w.last + 1)) {
-      const bottom = bandBottom(w);
-      const top = w.last >= count ? 0 : pos(w.last).y - STEP / 2;
-      html += `<div class="world-band${w.first === 1 ? " first" : ""}${w.sides ? ` sides-${w.sides}` : ""}${w.edge ? " has-edge" : ""}${w.wide ? " has-wide" : ""}" style="top:${top}px; height:${bottom - top}px;
+      const b = band(w);
+      const classes = ["world-band", w.first === 1 && "first", b.below && "joined",
+        w.sides && `sides-${w.sides}`, w.edge && "has-edge", w.wide && "has-wide"].filter(Boolean).join(" ");
+      html += `<div class="${classes}" style="top:${b.top}px; height:${b.bottom - b.top}px; --tile-h:${b.tileH ? b.tileH + "px" : "auto"};
         --map-image:url('${worldImage(w.id, "-mapa")}'); --bg-fallback:${w.fallback}${w.edge ? `; --map-edge:${w.edge}` : ""}${w.wide ? `; --map-wide:url('${worldImage(w.id, "-mapa-ancho")}')` : ""}"></div>`;
+      if (b.above) {
+        joinsHtml += `<div class="world-join" style="top:${b.above.top}px; height:${b.above.bottom - b.above.top}px;
+          --join-image:url('${b.above.url}')"></div>`;
+      }
     }
+    html += joinsHtml;
 
     html += `<svg class="map-road" viewBox="0 0 100 ${height}" preserveAspectRatio="none" aria-hidden="true">
       <path d="${d}" class="road-base" vector-effect="non-scaling-stroke"/>
