@@ -313,7 +313,7 @@
   //                   reflejada a cada lado, para computadora
   // Si falta alguna imagen, se usa el degradado "fallback" de ese mundo.
   const LEVELS_PER_WORLD = 100;
-  const WORLD_IMAGE_VERSION = 6; // súbelo si reemplazas imágenes con el mismo nombre
+  const WORLD_IMAGE_VERSION = 7; // súbelo si reemplazas imágenes con el mismo nombre
   const WORLDS = [
     { id: "pradera", edge: "#9acb78", name: { en: "Green Meadow", es: "Pradera Verde" }, color: "#43a047",
       fallback: "linear-gradient(#bfe9ff, #d8f5c4 35%, #8bc34a 70%, #5a9e2f)" },
