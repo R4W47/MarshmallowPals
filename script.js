@@ -317,7 +317,11 @@
   const WORLDS = [
     { id: "pradera", edge: "#9acb78", name: { en: "Green Meadow", es: "Pradera Verde" }, color: "#43a047",
       fallback: "linear-gradient(#bfe9ff, #d8f5c4 35%, #8bc34a 70%, #5a9e2f)" },
-    { id: "playa", edge: "#a3dedf", sides: "sea", name: { en: "Sunny Beach", es: "Playa Soleada" }, color: "#039be5",
+    { id: "playa", edge: "#a3dedf", sides: "sea",
+      // arena libre (en % del ancho) a lo largo de playa-mapa.jpg, de arriba a abajo en 40 tramos;
+      // el camino de niveles va por aquí para no pasar sobre palmeras. Si cambias la imagen, hay que medirla de nuevo.
+      lane: { ratio: 1136 / 768, free: [[31.6,66],[31.5,65.9],[35,65.1],[35,65.1],[35,65.1],[35,64.7],[35,64.7],[35,63.5],[39.2,63.5],[46.7,63.5],[47.9,63.5],[48.2,63.5],[48.2,63.5],[48.2,63.7],[48.2,63.7],[48.2,63.7],[45.2,63.7],[40.2,63.7],[39.6,53.1],[37.1,52.6],[35.2,52],[35.2,52],[35.2,52],[35.7,52],[36.5,52],[36.5,52],[38.2,52.6],[38.2,52.6],[38.2,52.6],[38.2,52.6],[38.2,54.8],[38.2,59.9],[36.3,63],[33.6,63],[33.6,63],[33.6,66.7],[33.6,66.7],[32.7,66.7],[31.6,66.9],[31.6,66]] },
+      name: { en: "Sunny Beach", es: "Playa Soleada" }, color: "#039be5",
       fallback: "linear-gradient(#aee4ff, #7fd3f7 40%, #f6e3a8 70%, #e9c97a)" },
     { id: "bosque", wide: true, name: { en: "Mushroom Forest", es: "Bosque de Hongos" }, color: "#8d6e63",
       fallback: "linear-gradient(#cfe8c8, #7cb36a 40%, #4e7d3a 75%, #3b5e2b)" },
@@ -1946,10 +1950,34 @@
     mapPathEl.style.height = `${height}px`;
 
     // posición de cada nivel: el 1 abajo, subiendo en zigzag suave
-    const pos = (n) => ({
-      x: 50 + Math.sin(n * 0.9) * 15, // % del ancho (el centro libre de los mapas va de ~31% a ~69%)
-      y: height - MAP_PADDING - (n - 1) * STEP, // px desde arriba
-    });
+    const FADE = 300; // px en que un mundo se mezcla con el siguiente
+    const posY = (n) => height - MAP_PADDING - (n - 1) * STEP; // px desde arriba
+    // abajo de la franja de fondo de cada mundo (la imagen se repite desde ahí hacia arriba)
+    const bandBottom = (w) => (w.first === 1 ? height : posY(w.first) + STEP / 2 + FADE);
+
+    // En mundos con "lane", el zigzag sigue la arena libre de su imagen
+    function laneX(n, w) {
+      const tileH = w.lane.ratio * window.innerWidth; // alto de la imagen en pantalla
+      const fromBottom = (((bandBottom(w) - posY(n)) % tileH) + tileH) % tileH;
+      const f = 1 - fromBottom / tileH; // 0 = arriba de la imagen, 1 = abajo
+      const rows = w.lane.free;
+      const k = f * rows.length - 0.5;
+      const i0 = Math.floor(k), t = k - i0;
+      const at = (i) => rows[((i % rows.length) + rows.length) % rows.length];
+      const lo = at(i0)[0] * (1 - t) + at(i0 + 1)[0] * t;
+      const hi = at(i0)[1] * (1 - t) + at(i0 + 1)[1] * t;
+      const amp = Math.max(0, Math.min(15, (hi - lo) / 2 - 8)); // 8% ≈ medio botón de nivel
+      return (lo + hi) / 2 + Math.sin(n * 0.9) * amp;
+    }
+
+    // posición de cada nivel: el 1 abajo, subiendo en zigzag suave
+    const pos = (n) => {
+      const w = worldOf(n);
+      return {
+        x: w.lane ? laneX(n, w) : 50 + Math.sin(n * 0.9) * 15, // % del ancho (centro libre ~31% a ~69%)
+        y: posY(n),
+      };
+    };
 
     // el camino: una curva que une todos los niveles
     let d = "";
@@ -1964,9 +1992,8 @@
     }
     // una franja de fondo por cada mundo visible en el mapa
     let html = "";
-    const FADE = 300; // px en que un mundo se mezcla con el siguiente
     for (let w = worldOf(1); w.first <= count; w = worldOf(w.last + 1)) {
-      const bottom = w.first === 1 ? height : pos(w.first).y + STEP / 2 + FADE;
+      const bottom = bandBottom(w);
       const top = w.last >= count ? 0 : pos(w.last).y - STEP / 2;
       html += `<div class="world-band${w.first === 1 ? " first" : ""}${w.sides ? ` sides-${w.sides}` : ""}${w.edge ? " has-edge" : ""}${w.wide ? " has-wide" : ""}" style="top:${top}px; height:${bottom - top}px;
         --map-image:url('${worldImage(w.id, "-mapa")}'); --bg-fallback:${w.fallback}${w.edge ? `; --map-edge:${w.edge}` : ""}${w.wide ? `; --map-wide:url('${worldImage(w.id, "-mapa-ancho")}')` : ""}"></div>`;
