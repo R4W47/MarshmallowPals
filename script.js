@@ -69,6 +69,15 @@
     extraMoves: 5,             // cuántos movimientos da el "+5"
   };
 
+  // ---------- Anuncios (solo en la app de Android; en el navegador no hay) ----------
+  const ADS = {
+    interstitialFromLevel: 10, // antes de este nivel no sale ningún anuncio entre niveles
+    interstitialEvery: 3,      // un anuncio entre niveles cada 3 niveles ganados
+    minMinutesBetween: 3,      // nunca un anuncio entre niveles a menos de 3 min de otro anuncio
+    boosterAdsPerDay: 5,       // máximo de power-ups que se consiguen con anuncios por día
+    boosterAdTypes: ["hammer", "swap", "moves"], // "mezclar" no se consigue con anuncios (es el más valioso)
+  };
+
   // Premios por un resultado muy bueno. Solo se dan si ganas con 3 estrellas Y superas
   // tu récord del nivel (así no se puede repetir un nivel fácil para juntar power-ups).
   // Se mide con los movimientos que sobraron al llegar a las 3 estrellas: son los que el
@@ -130,6 +139,17 @@
         shuffle: "Tap 🌀 again to shuffle the board",
       },
       boosterEmpty: "None left! Win 3 stars with a great score to earn more",
+      boosterAdTitle: (name) => `Out of ${name}`,
+      boosterAdText: "Watch a short video to get 1 free.",
+      watchAdBooster: "Watch ad · +1",
+      notNow: "Not now",
+      adLoading: "Loading ad…",
+      adUnavailable: "No ads available right now. Try again in a moment.",
+      adNoReward: "Watch the whole video to get the reward",
+      adLimit: "That's all the free power-ups for today! Come back tomorrow",
+      lifeAdded: "+1 life!",
+      boosterAdded: (name) => `+1 ${name}!`,
+      privacy: "Privacy",
       movesAdded: "+5 moves!",
       boosterAria: (name, n) => `${name}: ${n} left`,
       rewardGreat: "🎁 Great score! You earned:",
@@ -216,6 +236,17 @@
         shuffle: "Toca 🌀 otra vez para mezclar el tablero",
       },
       boosterEmpty: "¡No te quedan! Gana 3 estrellas con un gran puntaje para conseguir más",
+      boosterAdTitle: (name) => `Sin ${name}`,
+      boosterAdText: "Mira un video corto y te regalamos 1.",
+      watchAdBooster: "Ver anuncio · +1",
+      notNow: "Ahora no",
+      adLoading: "Cargando anuncio…",
+      adUnavailable: "No hay anuncios disponibles ahora. Intenta en un momento.",
+      adNoReward: "Mira el video completo para recibir el premio",
+      adLimit: "¡Ya usaste todos los power-ups gratis de hoy! Vuelve mañana",
+      lifeAdded: "¡+1 vida!",
+      boosterAdded: (name) => `¡+1 ${name}!`,
+      privacy: "Privacidad",
       movesAdded: "¡+5 movimientos!",
       boosterAria: (name, n) => `${name}: quedan ${n}`,
       rewardGreat: "🎁 ¡Gran puntaje! Ganaste:",
@@ -1107,7 +1138,11 @@
 
     if (won) {
       primaryBtn.textContent = t("nextLevel");
-      onPrimary = () => location.replace(`#nivel-${level.number + 1}`);
+      const next = level.number + 1;
+      onPrimary = async () => {
+        await Ads.betweenLevels(level.number);
+        location.replace(`#nivel-${next}`);
+      };
       secondaryBtn.textContent = t("replay");
       secondaryBtn.hidden = false;
       onSecondary = () => playAgain(level.number);
@@ -1478,7 +1513,8 @@
     }
     if (boosterCount(type) < 1) {
       disarmBooster();
-      showMessage(t("boosterEmpty"), 3000);
+      if (Ads.available && ADS.boosterAdTypes.includes(type)) offerBoosterAd(type);
+      else showMessage(t("boosterEmpty"), 3000);
       return;
     }
     armedBooster = type;
@@ -1803,6 +1839,7 @@
 
   function showNoLives() {
     hideLevelCard();
+    $("noLivesNote").textContent = "";
     noLivesEl.hidden = false;
     renderLives();
     $("noLivesClose").focus();
@@ -1830,6 +1867,146 @@
     if (e.target === quitEl) quitEl.hidden = true;
   });
   $("noLivesClose").addEventListener("click", () => (noLivesEl.hidden = true));
+
+  // =====================================================================
+  // ANUNCIOS (AdMob)
+  // =====================================================================
+  // La app de Android pone en la página un objeto "AndroidAds" que muestra los anuncios.
+  // En el navegador no existe: los botones de anuncios no aparecen y el juego sigue igual.
+  //   - Recompensado "life":    "Sin vidas" → ver anuncio → +1 vida
+  //   - Recompensado "booster": tocar un power-up que no tienes → ver anuncio → +1
+  //   - Intersticial:           entre niveles, cada ADS.interstitialEvery niveles ganados
+
+  const Ads = (() => {
+    const bridge = window.AndroidAds;
+    const available = !!bridge;
+    const waiting = {};
+    let nextId = 1;
+    let showing = false;
+
+    // Android avisa aquí cuando el anuncio se cerró (rewarded = vio el video completo)
+    window.__adsDone = (id, ok, reason) => {
+      if (ok || reason === "skipped") markShown(); // se vio un anuncio (aunque no lo terminara)
+      const done = waiting[id];
+      delete waiting[id];
+      showing = false;
+      if (done) done({ ok: !!ok, reason: reason || "" });
+    };
+
+    const adState = () => progress.ads || (progress.ads = { wins: 0, lastAt: 0 });
+    function markShown() {
+      adState().lastAt = Date.now();
+      saveProgress();
+    }
+
+    function call(method, ...args) {
+      if (!available || showing) return Promise.resolve({ ok: false, reason: "busy" });
+      showing = true;
+      const id = nextId++;
+      return new Promise((resolve) => {
+        waiting[id] = resolve;
+        try { bridge[method](...args, id); }
+        catch (e) { window.__adsDone(id, false, "error"); }
+      });
+    }
+
+    // Recompensado: ok = el jugador vio el video completo; si no, "note" explica por qué
+    async function rewarded(placement) {
+      const r = await call("showRewarded", placement);
+      let note = "";
+      if (r.reason === "unavailable") note = t("adUnavailable");
+      else if (!r.ok && r.reason === "skipped") note = t("adNoReward");
+      return { ok: r.ok, note };
+    }
+
+    async function betweenLevels(levelNumber) {
+      if (!available || levelNumber < ADS.interstitialFromLevel) return;
+      const state = adState();
+      state.wins = (state.wins || 0) + 1;
+      saveProgress();
+      if (state.wins < ADS.interstitialEvery) return;
+      // si hubo otro anuncio hace poco, se espera al siguiente nivel ganado
+      if (Date.now() - (state.lastAt || 0) < ADS.minMinutesBetween * 60 * 1000) return;
+      const r = await call("showInterstitial");
+      if (r.ok) {
+        state.wins = 0;
+        saveProgress();
+      }
+    }
+
+    const privacyRequired = () => available && !!bridge.privacyOptionsRequired && bridge.privacyOptionsRequired();
+    const showPrivacy = () => available && bridge.showPrivacyOptions();
+
+    return { available, rewarded, betweenLevels, privacyRequired, showPrivacy };
+  })();
+
+  // ---- "Sin vidas": ver anuncio por una vida
+  const noLivesAdBtn = $("noLivesAd");
+  noLivesAdBtn.hidden = !Ads.available;
+  const noLivesNote = $("noLivesNote");
+  noLivesAdBtn.addEventListener("click", async () => {
+    noLivesAdBtn.disabled = true;
+    noLivesNote.textContent = "";
+    const { ok, note } = await Ads.rewarded("life");
+    noLivesAdBtn.disabled = false;
+    noLivesNote.textContent = note;
+    if (!ok) return;
+    addLives(1);
+    Sound.play("reward");
+    noLivesEl.hidden = true;
+    showMessage(t("lifeAdded"), 2000);
+  });
+
+  // ---- Power-up agotado: ver anuncio por uno (con límite diario)
+  const boosterAdEl = $("boosterAd");
+  let boosterAdType = null;
+
+  function boosterAdsToday() {
+    const today = new Date().toISOString().slice(0, 10);
+    const st = progress.boosterAds;
+    return st && st.day === today ? st.count : 0;
+  }
+
+  function offerBoosterAd(type) {
+    if (boosterAdsToday() >= ADS.boosterAdsPerDay) {
+      showMessage(t("adLimit"), 3000);
+      return;
+    }
+    boosterAdType = type;
+    const name = t("boosterNames")[type];
+    $("boosterAdTitle").textContent = t("boosterAdTitle", name);
+    $("boosterAdIcon").textContent = BOOSTER_ICONS[type];
+    boosterAdEl.hidden = false;
+    $("boosterAdWatch").focus();
+  }
+
+  $("boosterAdWatch").addEventListener("click", async () => {
+    const type = boosterAdType;
+    const btn = $("boosterAdWatch");
+    btn.disabled = true;
+    const { ok, note } = await Ads.rewarded("booster");
+    btn.disabled = false;
+    boosterAdEl.hidden = true;
+    if (note) showMessage(note, 3000);
+    if (!ok || !type) return;
+    const today = new Date().toISOString().slice(0, 10);
+    progress.boosterAds = { day: today, count: boosterAdsToday() + 1 };
+    giveBoosters([type]);
+    renderBoosters();
+    Sound.play("reward");
+    showMessage(t("boosterAdded", t("boosterNames")[type]), 2000);
+  });
+  $("boosterAdClose").addEventListener("click", () => (boosterAdEl.hidden = true));
+  boosterAdEl.addEventListener("click", (e) => {
+    if (e.target === boosterAdEl) boosterAdEl.hidden = true;
+  });
+
+  // ---- Botón "Privacidad" en la portada (Google lo exige cuando hay que pedir consentimiento)
+  const privacyBtn = $("privacyBtn");
+  privacyBtn.hidden = !Ads.privacyRequired();
+  privacyBtn.addEventListener("click", () => Ads.showPrivacy());
+  // Android avisa cuando termina de revisar el consentimiento (puede tardar al abrir la app)
+  window.__adsPrivacyChanged = () => (privacyBtn.hidden = !Ads.privacyRequired());
   noLivesEl.addEventListener("click", (e) => {
     if (e.target === noLivesEl) noLivesEl.hidden = true;
   });
