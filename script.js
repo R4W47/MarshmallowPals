@@ -1839,7 +1839,7 @@
 
   function showNoLives() {
     hideLevelCard();
-    $("noLivesNote").textContent = "";
+    if ($("noLivesNote")) $("noLivesNote").textContent = "";
     noLivesEl.hidden = false;
     renderLives();
     $("noLivesClose").focus();
@@ -1940,24 +1940,6 @@
     return { available, rewarded, betweenLevels, privacyRequired, showPrivacy };
   })();
 
-  // ---- "Sin vidas": ver anuncio por una vida
-  const noLivesAdBtn = $("noLivesAd");
-  noLivesAdBtn.hidden = !Ads.available;
-  const noLivesNote = $("noLivesNote");
-  noLivesAdBtn.addEventListener("click", async () => {
-    noLivesAdBtn.disabled = true;
-    noLivesNote.textContent = "";
-    const { ok, note } = await Ads.rewarded("life");
-    noLivesAdBtn.disabled = false;
-    noLivesNote.textContent = note;
-    if (!ok) return;
-    addLives(1);
-    Sound.play("reward");
-    noLivesEl.hidden = true;
-    showMessage(t("lifeAdded"), 2000);
-  });
-
-  // ---- Power-up agotado: ver anuncio por uno (con límite diario)
   const boosterAdEl = $("boosterAd");
   let boosterAdType = null;
 
@@ -1968,6 +1950,7 @@
   }
 
   function offerBoosterAd(type) {
+    if (!boosterAdEl) return showMessage(t("boosterEmpty"), 3000);
     if (boosterAdsToday() >= ADS.boosterAdsPerDay) {
       showMessage(t("adLimit"), 3000);
       return;
@@ -1980,33 +1963,57 @@
     $("boosterAdWatch").focus();
   }
 
-  $("boosterAdWatch").addEventListener("click", async () => {
-    const type = boosterAdType;
-    const btn = $("boosterAdWatch");
-    btn.disabled = true;
-    const { ok, note } = await Ads.rewarded("booster");
-    btn.disabled = false;
-    boosterAdEl.hidden = true;
-    if (note) showMessage(note, 3000);
-    if (!ok || !type) return;
-    const today = new Date().toISOString().slice(0, 10);
-    progress.boosterAds = { day: today, count: boosterAdsToday() + 1 };
-    giveBoosters([type]);
-    renderBoosters();
-    Sound.play("reward");
-    showMessage(t("boosterAdded", t("boosterNames")[type]), 2000);
-  });
-  $("boosterAdClose").addEventListener("click", () => (boosterAdEl.hidden = true));
-  boosterAdEl.addEventListener("click", (e) => {
-    if (e.target === boosterAdEl) boosterAdEl.hidden = true;
-  });
+  // Botones de anuncios. Si el index.html es viejo y les faltan estas ventanas,
+  // el juego sigue funcionando igual (solo sin anuncios).
+  try {
+    // ---- "Sin vidas": ver anuncio por una vida
+    const noLivesAdBtn = $("noLivesAd");
+    noLivesAdBtn.hidden = !Ads.available;
+    const noLivesNote = $("noLivesNote");
+    noLivesAdBtn.addEventListener("click", async () => {
+      noLivesAdBtn.disabled = true;
+      noLivesNote.textContent = "";
+      const { ok, note } = await Ads.rewarded("life");
+      noLivesAdBtn.disabled = false;
+      noLivesNote.textContent = note;
+      if (!ok) return;
+      addLives(1);
+      Sound.play("reward");
+      noLivesEl.hidden = true;
+      showMessage(t("lifeAdded"), 2000);
+    });
 
-  // ---- Botón "Privacidad" en la portada (Google lo exige cuando hay que pedir consentimiento)
-  const privacyBtn = $("privacyBtn");
-  privacyBtn.hidden = !Ads.privacyRequired();
-  privacyBtn.addEventListener("click", () => Ads.showPrivacy());
-  // Android avisa cuando termina de revisar el consentimiento (puede tardar al abrir la app)
-  window.__adsPrivacyChanged = () => (privacyBtn.hidden = !Ads.privacyRequired());
+    // ---- Power-up agotado: ver anuncio por uno (con límite diario)
+    $("boosterAdWatch").addEventListener("click", async () => {
+      const type = boosterAdType;
+      const btn = $("boosterAdWatch");
+      btn.disabled = true;
+      const { ok, note } = await Ads.rewarded("booster");
+      btn.disabled = false;
+      boosterAdEl.hidden = true;
+      if (note) showMessage(note, 3000);
+      if (!ok || !type) return;
+      const today = new Date().toISOString().slice(0, 10);
+      progress.boosterAds = { day: today, count: boosterAdsToday() + 1 };
+      giveBoosters([type]);
+      renderBoosters();
+      Sound.play("reward");
+      showMessage(t("boosterAdded", t("boosterNames")[type]), 2000);
+    });
+    $("boosterAdClose").addEventListener("click", () => (boosterAdEl.hidden = true));
+    boosterAdEl.addEventListener("click", (e) => {
+      if (e.target === boosterAdEl) boosterAdEl.hidden = true;
+    });
+
+    // ---- Botón "Privacidad" en la portada (Google lo exige cuando hay que pedir consentimiento)
+    const privacyBtn = $("privacyBtn");
+    privacyBtn.hidden = !Ads.privacyRequired();
+    privacyBtn.addEventListener("click", () => Ads.showPrivacy());
+    // Android avisa cuando termina de revisar el consentimiento (puede tardar al abrir la app)
+    window.__adsPrivacyChanged = () => (privacyBtn.hidden = !Ads.privacyRequired());
+  } catch (e) {
+    console.warn("Anuncios: falta parte del index.html", e);
+  }
   noLivesEl.addEventListener("click", (e) => {
     if (e.target === noLivesEl) noLivesEl.hidden = true;
   });

@@ -1,3 +1,11 @@
+/* Letra Fredoka incluida en el juego (fonts/), para que funcione sin internet en la app */
+@font-face {
+  font-family: "Fredoka";
+  src: url("fonts/Fredoka.ttf") format("truetype");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
 :root {
   /* Fondo del juego: para cambiarlo (por temporada, por nivel...) basta con cambiar estas variables.
      Si reemplazas una imagen con el mismo nombre, sube su número ?v= */
@@ -1680,4 +1688,23 @@ h1 {
 
 #resultText {
   white-space: pre-line;
+}
+
+/* Ventana "Sin power-ups": el ícono grande del power-up */
+.booster-ad-icon {
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 6px 0 2px;
+}
+
+/* Aviso cuando no hay anuncio disponible (en "Sin vidas") */
+.ad-note {
+  font-size: 0.9em;
+  opacity: 0.85;
+  min-height: 0;
+}
+
+.ad-note:empty {
+  display: none;
 }

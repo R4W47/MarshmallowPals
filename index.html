@@ -8,10 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="images/icon-192.png">
   <link rel="apple-touch-icon" href="images/icon-192.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=24">
+  <link rel="stylesheet" href="style.css?v=26">
 </head>
 <body>
   <!-- ===== PORTADA ===== -->
@@ -27,6 +24,7 @@
         <button id="musicToggle" class="lang-btn sound-btn" type="button" aria-pressed="true"><span aria-hidden="true">🎵</span> <span data-label>Music: on</span></button>
         <button id="sfxToggle" class="lang-btn sound-btn" type="button" aria-pressed="true"><span aria-hidden="true">🔊</span> <span data-label>Sounds: on</span></button>
         <button id="langToggle" class="lang-btn" type="button"><span aria-hidden="true">🌐</span> <span data-i18n="switchLang">Español</span></button>
+        <button id="privacyBtn" class="lang-btn" type="button" hidden><span aria-hidden="true">🔒</span> <span data-i18n="privacy">Privacy</span></button>
       </div>
     </div>
   </section>
@@ -150,10 +148,24 @@
       <div class="big-heart empty" aria-hidden="true"></div>
       <p data-i18n="noLivesText">Your lives refill on their own over time.</p>
       <p class="next-life"><span data-i18n="nextLifeIn">Next life in</span> <strong id="noLivesTimer">--:--</strong></p>
+      <p id="noLivesNote" class="ad-note" aria-live="polite"></p>
       <div class="game-over-actions">
-        <!-- Aquí irá el botón de "ver anuncio por una vida" cuando se integre AdMob -->
+        <!-- Solo aparece en la app de Android (AdMob) -->
         <button id="noLivesAd" class="restart primary" type="button" data-i18n="watchAd" hidden>Watch ad · +1 life</button>
         <button id="noLivesClose" class="restart" type="button" data-i18n="ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Power-up agotado: ver anuncio por uno (solo en la app de Android) -->
+  <div id="boosterAd" class="game-over" hidden>
+    <div class="game-over-card" role="dialog" aria-modal="true" aria-labelledby="boosterAdTitle">
+      <h2 id="boosterAdTitle">Out of power-ups</h2>
+      <div id="boosterAdIcon" class="booster-ad-icon" aria-hidden="true">🔨</div>
+      <p data-i18n="boosterAdText">Watch a short video to get 1 free.</p>
+      <div class="game-over-actions">
+        <button id="boosterAdWatch" class="restart primary" type="button" data-i18n="watchAdBooster">Watch ad · +1</button>
+        <button id="boosterAdClose" class="restart" type="button" data-i18n="notNow">Not now</button>
       </div>
     </div>
   </div>
@@ -174,6 +186,6 @@
   </div>
 
   <script src="audio.js?v=1"></script>
-  <script src="script.js?v=24"></script>
+  <script src="script.js?v=26"></script>
 </body>
 </html>
