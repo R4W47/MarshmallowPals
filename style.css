@@ -1708,3 +1708,28 @@ h1 {
 .ad-note:empty {
   display: none;
 }
+
+/* ---------- Pista: jugada sugerida cuando el jugador tarda ----------
+   Los dos animalitos se empujan hacia la casilla del otro (--hx, --hy = dirección)
+   dos veces seguidas, descansan un momento y repiten. */
+.candy.hint {
+  z-index: 3;
+}
+
+.candy.hint .face {
+  animation: hint-nudge 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 2px var(--pink));
+}
+
+@keyframes hint-nudge {
+  0%, 40%, 100% { transform: translate(0, 0) scale(1); }
+  10%, 30% { transform: translate(calc(var(--hx) * 14%), calc(var(--hy) * 14%)) scale(1.06); }
+  20% { transform: translate(0, 0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .candy.hint .face {
+    animation: none;
+    transform: scale(1.1);
+  }
+}

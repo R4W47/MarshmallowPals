@@ -1359,6 +1359,7 @@
     if (tipOpen) hideTutorial(); // un consejo abierto se cierra al jugar
     const free = armedBooster === "swap"; // cambio libre: no necesita combinar ni gasta movimiento
     busy = true;
+    clearHint();
     clearSelection();
     if (free) spendBooster("swap");
     const move = () => { if (!free) useMove(); };
@@ -1392,6 +1393,7 @@
     } finally {
       busy = false;
       renderBoosters();
+      scheduleHint();
     }
     tutorialAfterMove();
     flushTip();
@@ -1457,6 +1459,7 @@
   async function useHammer(i) {
     if (busy || ended || !grid[i]) return;
     busy = true;
+    clearHint();
     clearSelection();
     try {
       spendBooster("hammer");
@@ -1470,6 +1473,7 @@
     } finally {
       busy = false;
       renderBoosters();
+      scheduleHint();
     }
     flushTip();
   }
@@ -1489,6 +1493,7 @@
   async function useShuffle() {
     if (busy) return;
     busy = true;
+    clearHint();
     clearSelection();
     try {
       spendBooster("shuffle");
@@ -1496,6 +1501,7 @@
     } finally {
       busy = false;
       renderBoosters();
+      scheduleHint();
     }
   }
 
@@ -1505,6 +1511,7 @@
     const btn = e.target.closest(".booster");
     if (!btn || busy || ended || rushing || tutorialBlocking()) return;
     const type = btn.dataset.booster;
+    scheduleHint(); // tocar un power-up también cuenta como estar jugando
 
     if (armedBooster === type) {
       if (type === "moves") return useExtraMoves();
@@ -1567,6 +1574,73 @@
   }
 
   // =====================================================================
+  // PISTA: si el jugador tarda en mover, se le muestra una jugada posible
+  // =====================================================================
+  //   Tras HINT_DELAY ms sin tocar el tablero, dos animalitos se "empujan" uno hacia
+  //   el otro y siguen así hasta que el jugador vuelva a tocar.
+
+  const HINT_DELAY = 8000; // ms de espera antes de la pista (súbelo o bájalo a gusto)
+  let hintTimer = null;
+  let hintMove = null;     // la última jugada sugerida: se repite mientras siga sirviendo
+
+  // ¿Esta jugada sirve? (misma regla que hasPossibleMove)
+  function isValidMove(g, a, b) {
+    if (!g[a] || !g[b]) return false;
+    if (g[a].special === BOMB || g[b].special === BOMB) return true;
+    if (g[a].special && g[b].special) return true;
+    const copy = g.slice();
+    swapIn(copy, a, b);
+    return findMatches(copy).groups.length > 0;
+  }
+
+  // Todas las jugadas válidas del tablero
+  function allMoves(g) {
+    const moves = [];
+    for (let i = 0; i < SIZE; i++) {
+      if (colOf(i) < WIDTH - 1 && isValidMove(g, i, i + 1)) moves.push({ a: i, b: i + 1 });
+      if (rowOf(i) < WIDTH - 1 && isValidMove(g, i, i + WIDTH)) moves.push({ a: i, b: i + WIDTH });
+    }
+    return moves;
+  }
+
+  function clearHint() {
+    clearTimeout(hintTimer);
+    hintTimer = null;
+    boardEl.querySelectorAll(".candy.hint").forEach((el) => el.classList.remove("hint"));
+  }
+
+  // Reinicia la cuenta: se llama cada vez que el jugador hace algo
+  function scheduleHint() {
+    clearHint();
+    hintTimer = setTimeout(showHint, HINT_DELAY);
+  }
+
+  function hintAllowed() {
+    return currentScreen === "game" && !busy && !ended && !rushing && !armedBooster &&
+      !tutorialBlocking() && !tipOpen && !document.hidden;
+  }
+
+  function showHint() {
+    hintTimer = null;
+    if (ended || currentScreen !== "game") return; // nivel terminado o fuera del juego: nada que sugerir
+    if (!hintAllowed()) return scheduleHint();     // ahora no conviene: vuelve a esperar
+    const moves = allMoves(grid);
+    if (!moves.length) return;
+    const same = hintMove && moves.find((m) => m.a === hintMove.a && m.b === hintMove.b);
+    hintMove = same || moves[Math.floor(Math.random() * moves.length)];
+    const { a, b } = hintMove;
+    const dx = colOf(b) - colOf(a);
+    const dy = rowOf(b) - rowOf(a);
+    [[a, dx, dy], [b, -dx, -dy]].forEach(([i, x, y]) => {
+      const el = els[i];
+      if (!el) return;
+      el.style.setProperty("--hx", x);
+      el.style.setProperty("--hy", y);
+      el.classList.add("hint");
+    });
+  }
+
+  // =====================================================================
   // 7. ENTRADA DEL USUARIO (mouse, dedo y tocar-tocar)
   // =====================================================================
 
@@ -1622,6 +1696,7 @@
     if (busy || ended) return;
     const index = cellFromPoint(e.clientX, e.clientY);
     if (index === null) return;
+    scheduleHint(); // el jugador está activo: la pista se esconde y la cuenta vuelve a empezar
     if (armedBooster === "hammer") {
       useHammer(index);
       return;
@@ -2044,12 +2119,14 @@
     grid = createGrid(seededRandom(level.seed)); // el tablero inicial es siempre el mismo
     grid = tutorialGrid(n) || grid;               // en los niveles con tutorial, uno que sirva para enseñar
     pendingTip = null;
+    hintMove = null;
     render("appear");
     updateHud();
     renderBoosters();
     if (!startTutorial()) {
       showMessage(level.hard ? t("hardStart", n) : t("levelStart", n, formatNumber(level.target)), 3000);
     }
+    scheduleHint();
   }
 
   // =====================================================================
@@ -2067,7 +2144,7 @@
 
   function showScreen(name) {
     if (name !== "game" && rushing) rushSkip = true;
-    if (name !== "game") hideTutorial();
+    if (name !== "game") { hideTutorial(); clearHint(); }
     for (const [key, el] of Object.entries(screens)) el.hidden = key !== name;
     document.body.dataset.screen = name;
     currentScreen = name;
