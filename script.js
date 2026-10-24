@@ -1406,7 +1406,7 @@
   //   armedBooster: el que está "armado" esperando que el jugador lo aplique
 
   const BOOSTER_TYPES = ["hammer", "swap", "moves", "shuffle"];
-  const BOOSTER_ICONS = { hammer: "🔨", swap: "🔀", moves: "+5", shuffle: "🌀" };
+  const BOOSTER_ICONS = Object.fromEntries(BOOSTER_TYPES.map((t) => [t, `images/boosters/${t}.svg`]));
   const boostersEl = $("boosters");
   const boosterBtns = [...boostersEl.querySelectorAll(".booster")];
   let armedBooster = null;
@@ -1568,7 +1568,7 @@
     const names = t("boosterNames");
     $("rewardItems").innerHTML = Object.entries(counts)
       .map(([type, n]) => `<span class="reward-item" title="${names[type]}">
-        <span class="booster-icon${type === "moves" ? " text" : ""}" aria-hidden="true">${BOOSTER_ICONS[type]}</span>
+        <img class="booster-icon" src="${BOOSTER_ICONS[type]}" alt="" aria-hidden="true">
         <span>${names[type]} ×${n}</span></span>`)
       .join("");
   }
@@ -1750,6 +1750,7 @@
       ...STRIPED_IMAGES.stripedH,
       ...STRIPED_IMAGES.stripedV,
       BOMB_IMAGE,
+      ...Object.values(BOOSTER_ICONS),
     ];
     return Promise.all(
       sources.map(
@@ -2033,7 +2034,7 @@
     boosterAdType = type;
     const name = t("boosterNames")[type];
     $("boosterAdTitle").textContent = t("boosterAdTitle", name);
-    $("boosterAdIcon").textContent = BOOSTER_ICONS[type];
+    $("boosterAdIcon").src = BOOSTER_ICONS[type];
     boosterAdEl.hidden = false;
     $("boosterAdWatch").focus();
   }

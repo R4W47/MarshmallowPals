@@ -1406,14 +1406,12 @@ h1 {
 }
 
 .booster-icon {
-  font-size: 1.7rem;
-  line-height: 1;
-}
-
-.booster-icon.text {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: var(--pink);
+  display: block;
+  width: 46px;
+  height: 46px;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 /* la cantidad, en una burbujita en la esquina */
@@ -1523,11 +1521,8 @@ h1 {
 }
 
 .reward-item .booster-icon {
-  font-size: 1.3rem;
-}
-
-.reward-item .booster-icon.text {
-  font-size: 1rem;
+  width: 28px;
+  height: 28px;
 }
 
 /* ---------- Música y sonidos ---------- */
@@ -1692,10 +1687,10 @@ h1 {
 
 /* Ventana "Sin power-ups": el ícono grande del power-up */
 .booster-ad-icon {
-  font-size: 56px;
-  font-weight: 700;
-  line-height: 1.2;
-  margin: 6px 0 2px;
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin: 6px auto 2px;
 }
 
 /* Aviso cuando no hay anuncio disponible (en "Sin vidas") */
