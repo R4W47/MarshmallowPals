@@ -1406,7 +1406,7 @@
   //   armedBooster: el que está "armado" esperando que el jugador lo aplique
 
   const BOOSTER_TYPES = ["hammer", "swap", "moves", "shuffle"];
-  const BOOSTER_ICONS = Object.fromEntries(BOOSTER_TYPES.map((t) => [t, `images/boosters/${t}.svg`]));
+  const BOOSTER_ICONS = Object.fromEntries(BOOSTER_TYPES.map((t) => [t, `images/boosters/${t}.png`]));
   const boostersEl = $("boosters");
   const boosterBtns = [...boostersEl.querySelectorAll(".booster")];
   let armedBooster = null;
