@@ -1,191 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Marshmallow Pals</title>
-  <meta name="theme-color" content="#f9a9b8">
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" href="images/icon-192.png">
-  <link rel="apple-touch-icon" href="images/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=26">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marshmallow Pals</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+    background: linear-gradient(180deg, #8fd8ff 0%, #c9efff 60%, #e9fbff 100%);
+    color: #3b2f55;
+  }
+  .card {
+    width: 100%;
+    max-width: 380px;
+    background: #ffffff;
+    border-radius: 28px;
+    padding: 32px 24px 28px;
+    text-align: center;
+    box-shadow: 0 12px 30px rgba(40, 90, 140, 0.25);
+  }
+  .pals { font-size: 54px; letter-spacing: 6px; margin-bottom: 12px; }
+  h1 { font-size: 28px; color: #e2577a; margin-bottom: 6px; }
+  .sub { font-size: 15px; color: #7a6c96; margin-bottom: 22px; }
+  p.msg { font-size: 17px; line-height: 1.45; margin-bottom: 26px; }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    border-radius: 999px;
+    background: #5ec26a;
+    color: #fff;
+    font-size: 19px;
+    font-weight: bold;
+    text-decoration: none;
+    box-shadow: 0 6px 0 #3f9a4b;
+    transition: transform .1s, box-shadow .1s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #3f9a4b; }
+  .note { margin-top: 18px; font-size: 13px; color: #8a7fa3; line-height: 1.4; }
+</style>
 </head>
 <body>
-  <!-- ===== PORTADA ===== -->
-  <section id="home" class="screen home" hidden>
-    <div class="home-card">
-      <div id="logoCandies" class="logo-candies" aria-hidden="true"></div>
-      <h1 class="logo">Marshmallow<br>Pals</h1>
-      <p class="home-stars"><span class="mini-star earned"></span> <strong id="homeStars">0</strong> <span data-i18n="starsWord">stars</span></p>
-      <div class="lives-pill" data-lives aria-live="polite"><span class="heart" aria-hidden="true"><strong class="lives-count">5</strong></span><span class="lives-timer"></span></div>
-      <button id="homePlay" class="big-btn primary" type="button"><span data-i18n="playLevel">Play · Level</span> <span id="homeLevel">1</span></button>
-      <button id="homeMap" class="big-btn" type="button" data-i18n="levels">Levels</button>
-      <div class="home-options">
-        <button id="musicToggle" class="lang-btn sound-btn" type="button" aria-pressed="true"><span aria-hidden="true">🎵</span> <span data-label>Music: on</span></button>
-        <button id="sfxToggle" class="lang-btn sound-btn" type="button" aria-pressed="true"><span aria-hidden="true">🔊</span> <span data-label>Sounds: on</span></button>
-        <button id="langToggle" class="lang-btn" type="button"><span aria-hidden="true">🌐</span> <span data-i18n="switchLang">Español</span></button>
-        <button id="privacyBtn" class="lang-btn" type="button" hidden><span aria-hidden="true">🔒</span> <span data-i18n="privacy">Privacy</span></button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===== MAPA DE NIVELES ===== -->
-  <section id="map" class="screen map" hidden>
-    <header class="map-bar">
-      <button id="mapBack" class="back-btn" type="button" data-i18n-aria="backHome" aria-label="Back to home">‹</button>
-      <h2 data-i18n="levels">Levels</h2>
-      <div class="map-badges">
-        <div class="lives-pill small" data-lives><span class="heart" aria-hidden="true"><strong class="lives-count">5</strong></span><span class="lives-timer"></span></div>
-        <div class="map-stars"><span class="mini-star earned"></span> <strong id="mapStars">0</strong></div>
-      </div>
-    </header>
-    <div id="mapScroll" class="map-scroll">
-      <div id="mapPath" class="map-path"></div>
-    </div>
-  </section>
-
-  <!-- ===== JUEGO ===== -->
-  <main id="game" class="screen game" hidden>
-    <header class="hud">
-      <div class="hud-top">
-        <button id="gameBack" class="back-btn small" type="button" data-i18n="mapShort" data-i18n-aria="backMap" aria-label="Back to map">‹ Map</button>
-        <h1>Marshmallow Pals</h1>
-        <div class="hud-right">
-          <button id="gameMute" class="mute-btn" type="button" aria-label="Mute">🔊</button>
-          <div class="lives-pill small" data-lives><span class="heart" aria-hidden="true"><strong class="lives-count">5</strong></span><span class="lives-timer"></span></div>
-        </div>
-      </div>
-      <div class="stats">
-        <div class="stat"><span data-i18n="level">Level</span><strong id="levelNum">1</strong></div>
-        <div class="stat moves" id="movesBox"><span data-i18n="moves">Moves</span><strong id="moves">0</strong></div>
-        <div class="stat" id="scoreBox"><span data-i18n="score">Score</span><strong id="score">0</strong></div>
-      </div>
-      <div class="goal">
-        <div class="goal-bar" aria-hidden="true">
-          <div id="goalFill" class="goal-fill"></div>
-          <span id="goalMark1" class="goal-mark"></span>
-          <span id="goalMark2" class="goal-mark"></span>
-          <span id="goalMark3" class="goal-mark"></span>
-        </div>
-        <div class="goal-text"><span data-i18n="target">Target</span> <strong id="target">0</strong></div>
-      </div>
-    </header>
-
-    <div class="board-frame">
-      <div id="board" class="board" data-i18n-aria="board" aria-label="Game board"></div>
-      <div id="rushBanner" class="rush-banner" hidden data-i18n="rush">Animal Rush!</div>
-    </div>
-
-    <p id="message" class="message" aria-live="polite"></p>
-
-    <!-- Power-ups: se arman con un toque; martillo y cambio se aplican tocando el tablero -->
-    <div id="boosters" class="boosters" role="toolbar" data-i18n-aria="boosters" aria-label="Power-ups">
-      <button class="booster" type="button" data-booster="hammer"><img class="booster-icon" src="images/boosters/hammer.png" alt="" aria-hidden="true"><span class="booster-count">0</span></button>
-      <button class="booster" type="button" data-booster="swap"><img class="booster-icon" src="images/boosters/swap.png" alt="" aria-hidden="true"><span class="booster-count">0</span></button>
-      <button class="booster" type="button" data-booster="moves"><img class="booster-icon" src="images/boosters/moves.png" alt="" aria-hidden="true"><span class="booster-count">0</span></button>
-      <button class="booster" type="button" data-booster="shuffle"><img class="booster-icon" src="images/boosters/shuffle.png" alt="" aria-hidden="true"><span class="booster-count">0</span></button>
-    </div>
-  </main>
-
-  <div id="result" class="game-over" hidden>
-    <div class="game-over-card" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
-      <h2 id="resultTitle"></h2>
-      <div class="result-stars" id="resultStars" aria-hidden="true">
-        <span class="star"></span><span class="star big"></span><span class="star"></span>
-      </div>
-      <p id="resultText"></p>
-      <p class="final-score"><span data-i18n="finalScore">Score:</span> <strong id="finalScore">0</strong></p>
-      <p class="best-score"><span data-i18n="levelBest">Level best:</span> <strong id="bestScore">0</strong></p>
-      <div id="resultReward" class="reward" hidden>
-        <p id="rewardTitle" class="reward-title"></p>
-        <div id="rewardItems" class="reward-items"></div>
-      </div>
-      <div class="game-over-actions">
-        <button id="resultPrimary" class="restart primary" type="button"></button>
-        <button id="resultSecondary" class="restart" type="button"></button>
-        <button id="exitGame" class="restart" type="button" data-i18n="map">Map</button>
-      </div>
-    </div>
+  <div class="card">
+    <div class="pals">🐱🐙🐸</div>
+    <h1>Marshmallow Pals</h1>
+    <div class="sub">¡Nos mudamos!</div>
+    <p class="msg">El juego ya no se juega aquí.<br>Ahora está en la <b>app para Android</b>, con vidas, power-ups y mundos nuevos.</p>
+    <a class="btn" href="https://play.google.com/apps/testing/app.marshmallowpals.game">Descargar la app</a>
+    <p class="note">Si te dice que no tenés acceso, avisame para agregar tu correo a la lista de prueba.</p>
   </div>
 
-  <!-- Tarjeta que aparece al tocar un nivel en el mapa -->
-  <div id="levelCard" class="game-over" hidden>
-    <div class="game-over-card level-card" role="dialog" aria-modal="true" aria-labelledby="cardTitle">
-      <h2 id="cardTitle">Level 1</h2>
-      <p id="cardZone" class="card-zone"></p>
-      <div class="result-stars" id="cardStars" aria-hidden="true">
-        <span class="star"></span><span class="star big"></span><span class="star"></span>
-      </div>
-      <div class="card-info">
-        <div><span data-i18n="target">Target</span><strong id="cardTarget">0</strong></div>
-        <div><span data-i18n="moves">Moves</span><strong id="cardMoves">0</strong></div>
-        <div><span data-i18n="best">Best</span><strong id="cardBest">—</strong></div>
-      </div>
-      <div class="game-over-actions">
-        <button id="cardPlay" class="restart primary" type="button" data-i18n="play">Play</button>
-        <button id="cardClose" class="restart" type="button" data-i18n="close">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Confirmación al salir de un nivel a medias -->
-  <div id="quitConfirm" class="game-over" hidden>
-    <div class="game-over-card" role="dialog" aria-modal="true" aria-labelledby="quitTitle">
-      <h2 id="quitTitle" data-i18n="quitTitle">Leave level?</h2>
-      <div class="big-heart broken" aria-hidden="true"></div>
-      <p data-i18n="quitText">If you leave before finishing, you'll lose a life.</p>
-      <div class="game-over-actions">
-        <button id="quitStay" class="restart primary" type="button" data-i18n="keepPlaying">Keep playing</button>
-        <button id="quitLeave" class="restart" type="button" data-i18n="quitLeave">Leave (−1 life)</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Sin vidas -->
-  <div id="noLives" class="game-over" hidden>
-    <div class="game-over-card" role="dialog" aria-modal="true" aria-labelledby="noLivesTitle">
-      <h2 id="noLivesTitle" data-i18n="noLivesTitle">Out of lives</h2>
-      <div class="big-heart empty" aria-hidden="true"></div>
-      <p data-i18n="noLivesText">Your lives refill on their own over time.</p>
-      <p class="next-life"><span data-i18n="nextLifeIn">Next life in</span> <strong id="noLivesTimer">--:--</strong></p>
-      <p id="noLivesNote" class="ad-note" aria-live="polite"></p>
-      <div class="game-over-actions">
-        <!-- Solo aparece en la app de Android (AdMob) -->
-        <button id="noLivesAd" class="restart primary" type="button" data-i18n="watchAd" hidden>Watch ad · +1 life</button>
-        <button id="noLivesClose" class="restart" type="button" data-i18n="ok">OK</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Power-up agotado: ver anuncio por uno (solo en la app de Android) -->
-  <div id="boosterAd" class="game-over" hidden>
-    <div class="game-over-card" role="dialog" aria-modal="true" aria-labelledby="boosterAdTitle">
-      <h2 id="boosterAdTitle">Out of power-ups</h2>
-      <img id="boosterAdIcon" class="booster-ad-icon" src="images/boosters/hammer.png" alt="" aria-hidden="true">
-      <p data-i18n="boosterAdText">Watch a short video to get 1 free.</p>
-      <div class="game-over-actions">
-        <button id="boosterAdWatch" class="restart primary" type="button" data-i18n="watchAdBooster">Watch ad · +1</button>
-        <button id="boosterAdClose" class="restart" type="button" data-i18n="notNow">Not now</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tutorial: foco, manito y globo de texto (se dibujan encima de todo) -->
-  <div id="tutorial" class="tutorial" hidden>
-    <div id="tutSpot" class="tut-spot" hidden></div>
-    <div id="tutHand" class="tut-hand" aria-hidden="true" hidden>👆</div>
-    <div id="tutBubble" class="tut-bubble" role="dialog" aria-live="polite" hidden>
-      <p id="tutText"></p>
-      <button id="tutBtn" class="restart primary" type="button">OK</button>
-    </div>
-  </div>
-
-  <div class="rotate-notice" role="alert">
-    <div class="phone" aria-hidden="true">📱</div>
-    <p data-i18n="rotate">Turn your phone upright to play</p>
-  </div>
-
-  <script src="audio.js?v=1"></script>
-  <script src="script.js?v=26"></script>
+<script>
+  // Limpia la versión vieja que el navegador haya guardado
+  try {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        regs.forEach(function (r) { r.unregister(); });
+      }).catch(function () {});
+    }
+    if (window.caches) {
+      caches.keys().then(function (keys) {
+        keys.forEach(function (k) { caches.delete(k); });
+      }).catch(function () {});
+    }
+  } catch (e) {}
+</script>
 </body>
 </html>
